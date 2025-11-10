@@ -117,81 +117,215 @@
               <option value="logistics">Logistics & Transport</option>
             </select>
           </div>
+<!-- Strict Location & Market Focus - AFRICA, CHINA, INDIA, RUSSIA ONLY -->
+<div class="space-y-6">
+  <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center space-x-2">
+    <Icon icon="material-symbols:location-on" class="text-zoom-500" />
+    <span>Location & Target Markets</span>
+  </h3>
 
-          <!-- ENHANCED LOCATION SECTION -->
-          <div class="pt-4 border-t border-gray-200 dark:border-gray-600">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center space-x-2">
-              <Icon icon="material-symbols:location-on" class="text-zoom-500 text-lg" />
-              <span>Business Location & Markets</span>
-            </label>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Country -->
-              <div>
-                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">Country</label>
-                <select v-model="profile.location.country" class="input-modern">
-                  <option value="">Select Country</option>
-                  <optgroup label="African Countries">
-                    <option v-for="country in africanCountries" :key="country" :value="country">
-                      {{ country }}
-                    </option>
-                  </optgroup>
-                  <option value="China">China (including Hong Kong SAR)</option>
-                  <option value="India">India</option>
-                  <option value="Russia">Russia</option>
-                </select>
-              </div>
+  <!-- Target Markets - STRICTLY AFRICA, CHINA, INDIA, RUSSIA -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+      Target Markets * <span class="text-xs text-gray-500">(Select your business focus regions)</span>
+    </label>
+    <div class="grid grid-cols-2 gap-3">
+      <!-- Africa -->
+      <label 
+        class="flex items-center space-x-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+        :class="profile.targetMarkets.includes('africa') ? 'bg-green-50 border-green-500 dark:bg-green-900/20 dark:border-green-400' : ''"
+      >
+        <input 
+          type="checkbox" 
+          value="africa"
+          v-model="profile.targetMarkets"
+          class="rounded text-green-500 focus:ring-green-500"
+        >
+        <Icon icon="emojione:flag-for-south-africa" class="text-2xl" />
+        <div>
+          <span class="font-semibold text-gray-800 dark:text-white">Africa</span>
+          <p class="text-xs text-gray-500">54 countries</p>
+        </div>
+      </label>
 
-              <!-- City -->
-              <div>
-                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">City</label>
-                <input 
-                  v-model="profile.location.city"
-                  type="text" 
-                  placeholder="Business city"
-                  class="input-modern"
-                >
-              </div>
+      <!-- China -->
+      <label 
+        class="flex items-center space-x-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+        :class="profile.targetMarkets.includes('china') ? 'bg-red-50 border-red-500 dark:bg-red-900/20 dark:border-red-400' : ''"
+      >
+        <input 
+          type="checkbox" 
+          value="china"
+          v-model="profile.targetMarkets"
+          class="rounded text-red-500 focus:ring-red-500"
+        >
+        <Icon icon="emojione:flag-for-china" class="text-2xl" />
+        <div>
+          <span class="font-semibold text-gray-800 dark:text-white">China</span>
+          <p class="text-xs text-gray-500">Mainland & HK</p>
+        </div>
+      </label>
 
-              <!-- Zip Code -->
-              <div>
-                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">ZIP/Postal Code</label>
-                <input 
-                  v-model="profile.location.zipCode"
-                  type="text" 
-                  placeholder="ZIP/Postal code"
-                  class="input-modern"
-                >
-              </div>
+      <!-- India -->
+      <label 
+        class="flex items-center space-x-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+        :class="profile.targetMarkets.includes('india') ? 'bg-orange-50 border-orange-500 dark:bg-orange-900/20 dark:border-orange-400' : ''"
+      >
+        <input 
+          type="checkbox" 
+          value="india"
+          v-model="profile.targetMarkets"
+          class="rounded text-orange-500 focus:ring-orange-500"
+        >
+        <Icon icon="emojione:flag-for-india" class="text-2xl" />
+        <div>
+          <span class="font-semibold text-gray-800 dark:text-white">India</span>
+          <p class="text-xs text-gray-500">South Asia</p>
+        </div>
+      </label>
 
-              <!-- Address -->
-              <div>
-                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">Address</label>
-                <input 
-                  v-model="profile.location.address"
-                  type="text" 
-                  placeholder="Business address"
-                  class="input-modern"
-                >
-              </div>
+      <!-- Russia -->
+      <label 
+        class="flex items-center space-x-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+        :class="profile.targetMarkets.includes('russia') ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/20 dark:border-blue-400' : ''"
+      >
+        <input 
+          type="checkbox" 
+          value="russia"
+          v-model="profile.targetMarkets"
+          class="rounded text-blue-500 focus:ring-blue-500"
+        >
+        <Icon icon="emojione:flag-for-russia" class="text-2xl" />
+        <div>
+          <span class="font-semibold text-gray-800 dark:text-white">Russia</span>
+          <p class="text-xs text-gray-500">CIS Region</p>
+        </div>
+      </label>
+    </div>
+  </div>
 
-              <!-- Target Markets -->
-              <div class="md:col-span-2">
-                <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">Target Markets</label>
-                <div class="flex flex-wrap gap-2">
-                  <label v-for="market in targetMarkets" :key="market" class="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      :value="market" 
-                      v-model="profile.targetMarkets"
-                      class="rounded text-zoom-500 focus:ring-zoom-500"
-                    >
-                    <span class="text-sm">{{ marketLabel(market) }}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
+  <!-- Country Selection - STRICTLY AFRICAN COUNTRIES, CHINA, INDIA, RUSSIA -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      Country * <span class="text-xs text-gray-500">(Your primary business location)</span>
+    </label>
+    
+    <!-- Region Tabs - ONLY OUR TARGET REGIONS -->
+    <div class="flex space-x-1 mb-3 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+      <button 
+        v-for="region in regions"
+        :key="region.id"
+        @click="activeRegion = region.id"
+        class="flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-300"
+        :class="activeRegion === region.id 
+          ? 'bg-white dark:bg-gray-600 text-zoom-600 dark:text-zoom-300 shadow-sm' 
+          : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white'"
+      >
+        {{ region.name }}
+      </button>
+    </div>
+
+    <!-- Country Selector - ONLY OUR COUNTRIES -->
+    <select 
+      v-model="profile.location.country"
+      class="input-modern"
+      required
+    >
+      <option value="">Select Your Country</option>
+      
+      <!-- African Countries (Alphabetical) -->
+      <optgroup label="🌍 African Countries">
+        <option 
+          v-for="country in africanCountries" 
+          :key="country"
+          :value="country"
+        >
+          {{ country }}
+        </option>
+      </optgroup>
+
+      <!-- China -->
+      <optgroup label="🇨🇳 China">
+        <option value="China">China (Mainland)</option>
+        <option value="Hong Kong">Hong Kong SAR</option>
+      </optgroup>
+
+      <!-- India -->
+      <optgroup label="🇮🇳 India">
+        <option value="India">India</option>
+      </optgroup>
+
+      <!-- Russia -->
+      <optgroup label="🇷🇺 Russia">
+        <option value="Russia">Russia</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <!-- City -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      City <span class="text-xs text-gray-500">(Your business city)</span>
+    </label>
+    <input 
+      v-model="profile.location.city"
+      type="text"
+      class="input-modern"
+      :placeholder="getCityPlaceholder()"
+    >
+  </div>
+
+  <!-- Zip/Postal Code -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      ZIP/Postal Code
+    </label>
+    <input 
+      v-model="profile.location.zipCode"
+      type="text"
+      class="input-modern"
+      :placeholder="getZipPlaceholder()"
+    >
+  </div>
+
+  <!-- Address -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      Business Address
+    </label>
+    <textarea 
+      v-model="profile.location.address"
+      class="input-modern"
+      placeholder="Full business address, district, or industrial zone"
+      rows="3"
+    ></textarea>
+  </div>
+
+  <!-- Market Focus Display -->
+  <div 
+    v-if="profile.targetMarkets.length > 0"
+    class="bg-zoom-50 dark:bg-zoom-900/20 border border-zoom-200 dark:border-zoom-700 rounded-xl p-4"
+  >
+    <h4 class="font-semibold text-zoom-800 dark:text-zoom-200 mb-2 flex items-center space-x-2">
+      <Icon icon="material-symbols:public" class="text-zoom-500" />
+      <span>Your Market Focus</span>
+    </h4>
+    <div class="flex flex-wrap gap-2">
+      <span 
+        v-for="market in profile.targetMarkets"
+        :key="market"
+        class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium"
+        :class="getMarketBadgeClass(market)"
+      >
+        <Icon :icon="getMarketIcon(market)" class="text-sm" />
+        <span>{{ marketLabel(market) }}</span>
+      </span>
+    </div>
+    <p class="text-xs text-zoom-700 dark:text-zoom-300 mt-2">
+      Your profile will be optimized for business connections in these regions
+    </p>
+  </div>
+</div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center space-x-2">
@@ -310,7 +444,7 @@
 
               <!-- WeChat -->
               <div class="flex items-center space-x-2">
-                <Icon icon="logos:wechat" class="text-[#07C160] text-xl" />
+                <Icon icon="simple-icons:wechat" class="text-[#07C160] text-xl" />
                 <input 
                   v-model="profile.socialMedia.wechat"
                   type="text" 
@@ -508,7 +642,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref, onMounted, computed, nextTick } from 'vue' // ✅ ADD nextTick
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useProfileStore } from '../stores/profile'
 import { QREngine } from '../engines/QREngine'
 
@@ -521,6 +655,16 @@ const showWebsitePreview = ref(false)
 const qrCode = ref('')
 const isLoading = ref(false)
 
+// ✅ STRICT REGIONS - ONLY AFRICA, CHINA, INDIA, RUSSIA
+const regions = ref([
+  { id: 'africa', name: '🌍 Africa' },
+  { id: 'china', name: '🇨🇳 China' },
+  { id: 'india', name: '🇮🇳 India' },
+  { id: 'russia', name: '🇷🇺 Russia' }
+])
+
+const activeRegion = ref('africa')
+
 // ✅ UPDATED PROFILE STRUCTURE WITH BETTER IMAGE HANDLING
 const profile = ref({
   name: '',
@@ -530,7 +674,7 @@ const profile = ref({
   phone: '',
   email: '',
   website: '',
-  image: '' as string, // ✅ CHANGED TO STRING ONLY
+  image: '' as string,
   flyers: [] as Array<{ name: string; file: File; size: number; type: string }>,
   socialMedia: {
     linkedin: '',
@@ -552,15 +696,93 @@ const profile = ref({
   targetMarkets: ['africa'] as ('africa' | 'china' | 'india' | 'russia')[]
 })
 
+// ✅ SMART PLACEHOLDERS BASED ON SELECTED COUNTRY
+const getCityPlaceholder = () => {
+  const country = profile.value.location.country
+  if (country === 'China' || country === 'Hong Kong') return 'e.g. Shanghai, Beijing, Shenzhen, Hong Kong'
+  if (country === 'India') return 'e.g. Mumbai, Delhi, Bangalore, Chennai'
+  if (country === 'Russia') return 'e.g. Moscow, Saint Petersburg, Novosibirsk'
+  return 'e.g. Lagos, Nairobi, Accra, Johannesburg' // African default
+}
+
+const getZipPlaceholder = () => {
+  const country = profile.value.location.country
+  if (country === 'China') return 'e.g. 100000'
+  if (country === 'Hong Kong') return 'e.g. 999077'
+  if (country === 'India') return 'e.g. 400001'
+  if (country === 'Russia') return 'e.g. 101000'
+  return 'e.g. 100001' // African default
+}
+
+// ✅ STRICT TARGET MARKETS - ONLY OUR 4 REGIONS
+const targetMarkets = computed(() => [
+  { id: 'africa', name: 'Africa', icon: 'emojione:flag-for-south-africa' },
+  { id: 'china', name: 'China', icon: 'emojione:flag-for-china' },
+  { id: 'india', name: 'India', icon: 'emojione:flag-for-india' },
+  { id: 'russia', name: 'Russia', icon: 'emojione:flag-for-russia' }
+])
+
+// ✅ ENHANCED MARKET BADGE STYLING
+const getMarketBadgeClass = (market: string) => {
+  const classes = {
+    africa: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    china: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    india: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    russia: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+  }
+  return classes[market as keyof typeof classes] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+}
+
+// ✅ ENHANCED MARKET ICONS
+const getMarketIcon = (market: string) => {
+  const icons = {
+    africa: 'emojione:flag-for-south-africa',
+    china: 'emojione:flag-for-china',
+    india: 'emojione:flag-for-india',
+    russia: 'emojione:flag-for-russia'
+  }
+  return icons[market as keyof typeof icons] || 'material-symbols:public'
+}
+
+// ✅ ENHANCED MARKET LABELS
+const marketLabel = (market: 'africa' | 'china' | 'india' | 'russia') => {
+  const labels = {
+    africa: 'Africa',
+    china: 'China',
+    india: 'India',
+    russia: 'Russia'
+  }
+  return labels[market] || market
+}
+
+// ✅ COMPLETE AFRICAN COUNTRIES LIST (ALPHABETICAL)
+const africanCountries = computed(() => {
+  return [
+    // North Africa
+    'Algeria', 'Egypt', 'Libya', 'Morocco', 'Sudan', 'Tunisia', 'Western Sahara',
+    // West Africa
+    'Benin', 'Burkina Faso', 'Cape Verde', 'Ivory Coast', 'Gambia', 'Ghana', 'Guinea', 
+    'Guinea-Bissau', 'Liberia', 'Mali', 'Mauritania', 'Niger', 'Nigeria', 'Senegal', 
+    'Sierra Leone', 'Togo',
+    // Central Africa
+    'Angola', 'Cameroon', 'Central African Republic', 'Chad', 'Congo', 
+    'Democratic Republic of the Congo', 'Equatorial Guinea', 'Gabon', 'São Tomé and Príncipe',
+    // East Africa
+    'Burundi', 'Comoros', 'Djibouti', 'Eritrea', 'Ethiopia', 'Kenya', 'Madagascar', 
+    'Malawi', 'Mauritius', 'Mozambique', 'Rwanda', 'Seychelles', 'Somalia', 'South Sudan', 
+    'Tanzania', 'Uganda', 'Zambia', 'Zimbabwe',
+    // Southern Africa
+    'Botswana', 'Eswatini', 'Lesotho', 'Namibia', 'South Africa'
+  ].sort() // Alphabetical order
+})
+
 // ✅ FIXED: PROPER IMAGE UPLOAD HANDLING
 const triggerImageUpload = () => {
   console.log('📸 Triggering image upload...')
-  // Ensure the input element is available
   if (imageInput.value) {
     imageInput.value.click()
   } else {
     console.error('❌ Image input element not found')
-    // Try to find it again
     nextTick(() => {
       if (imageInput.value) {
         imageInput.value.click()
@@ -598,28 +820,21 @@ const handleImageUpload = async (event: Event) => {
   }
 
   try {
-    // Create a promise for file reading
     const imageDataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
-      
       reader.onload = (e) => {
         console.log('✅ Image loaded successfully')
         resolve(e.target?.result as string)
       }
-      
       reader.onerror = () => {
         console.error('❌ Error reading file')
         reject(new Error('Failed to read image file'))
       }
-      
       reader.readAsDataURL(file)
     })
 
-    // Update profile image
     profile.value.image = imageDataUrl
     console.log('✅ Profile image updated')
-    
-    // Reset the file input to allow selecting the same file again
     resetFileInput()
     
   } catch (error) {
@@ -656,16 +871,13 @@ onMounted(async () => {
     profile.value = { 
       ...profile.value, 
       ...saved,
-      // Ensure image is properly handled
       image: saved.image || '',
-      // Convert flyers to the format we need
       flyers: (saved.flyers || []).map((f: any) => ({
         name: f.name,
         file: f.file,
         size: f.size || 0,
         type: f.type || 'application/octet-stream'
       })),
-      // Ensure social media object exists with WeChat
       socialMedia: saved.socialMedia || {
         linkedin: '',
         twitter: '',
@@ -676,7 +888,6 @@ onMounted(async () => {
         wechat: '',
         github: ''
       },
-      // Ensure location exists
       location: saved.location || {
         country: '',
         city: '',
@@ -684,7 +895,6 @@ onMounted(async () => {
         address: '',
         marketFocus: []
       },
-      // Ensure target markets exist
       targetMarkets: saved.targetMarkets || ['africa']
     }
     
@@ -705,14 +915,12 @@ const handleFlyerUpload = (event: Event) => {
   const files = Array.from(target.files || [])
   
   files.forEach(file => {
-    // Validate file type
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
       alert(`❌ File type not supported: ${file.name}. Please use PDF, JPG, or PNG files.`)
       return
     }
 
-    // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
       alert(`❌ File too large: ${file.name}. Maximum size is 10MB.`)
       return
@@ -726,7 +934,6 @@ const handleFlyerUpload = (event: Event) => {
     })
   })
   
-  // Reset input
   if (flyerInput.value) {
     flyerInput.value.value = ''
   }
@@ -776,7 +983,6 @@ const generateQRCode = async () => {
   if (!isFormValid.value) return
 
   try {
-    // Use the QREngine to generate QR code with enhanced data
     const qrData = {
       name: profile.value.name,
       position: profile.value.position,
@@ -788,13 +994,11 @@ const generateQRCode = async () => {
       socialMedia: profile.value.socialMedia,
       location: profile.value.location,
       targetMarkets: profile.value.targetMarkets
-      // Note: We don't include the image in QR code to keep it small
     }
     
     qrCode.value = await qrEngine.generateQR(JSON.stringify(qrData))
   } catch (error) {
     console.error('❌ Error generating QR code:', error)
-    // Fallback to simple QR code
     qrCode.value = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(profile.value.name + ' - ' + profile.value.company)}`
   }
 }
@@ -821,13 +1025,9 @@ const activeSocialMedia = computed(() => {
     { name: 'Facebook', url: profile.value.socialMedia.facebook, icon: 'logos:facebook', color: '#1877f2' },
     { name: 'WhatsApp', url: profile.value.socialMedia.whatsapp, icon: 'logos:whatsapp-icon', color: '#25d366' },
     { name: 'YouTube', url: profile.value.socialMedia.youtube, icon: 'logos:youtube-icon', color: '#ff0000' },
-    { name: 'WeChat', url: profile.value.socialMedia.wechat, icon: 'logos:wechat', color: '#07C160' },
+    { name: 'WeChat', url: profile.value.socialMedia.wechat, icon: 'simple-icons:wechat', color: '#07C160' },
     { name: 'GitHub', url: profile.value.socialMedia.github, icon: 'logos:github-icon', color: '#000000' }
   ]
   return platforms.filter(platform => platform.url && platform.url.trim() !== '')
 })
-
-const africanCountries = computed(() => profileStore.getAfricanCountries())
-const targetMarkets = computed(() => profileStore.getTargetMarkets())
-const marketLabel = (market: 'africa' | 'china' | 'india' | 'russia') => profileStore.getMarketLabel(market)
 </script>

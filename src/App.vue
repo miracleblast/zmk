@@ -11,8 +11,12 @@
             v-for="nav in navigation" 
             :key="nav.name"
             :to="nav.path"
-            class="flex flex-col items-center space-y-1 p-2 rounded-2xl transition-all duration-300 group"
-            :class="[$route.name === nav.name ? 'text-zoom-500 scale-110' : 'text-gray-500 hover:text-zoom-400']"
+            class="flex flex-col items-center space-y-1 p-2 rounded-2xl transition-all duration-300 group flex-1"
+            :class="[
+              $route.name === nav.name 
+                ? 'text-zoom-500 scale-110 bg-white/20 dark:bg-gray-800/50' 
+                : 'text-gray-500 hover:text-zoom-400 hover:bg-white/10 dark:hover:bg-gray-800/30'
+            ]"
           >
             <Icon :icon="nav.icon" class="text-2xl transition-transform duration-300 group-hover:scale-110" />
             <span class="text-xs font-medium font-poppins">{{ nav.label }}</span>
@@ -25,15 +29,45 @@
 
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const isDarkMode = ref(false)
+
+// ✅ UPDATED NAVIGATION WITH CHAT TAB
 const navigation = ref([
-  { name: 'scanner', path: '/', label: 'Scan', icon: 'material-symbols:qr-code-scanner' },
-  { name: 'profile', path: '/profile', label: 'My Card', icon: 'material-symbols:person' },
-  { name: 'contacts', path: '/contacts', label: 'Contacts', icon: 'material-symbols:contacts' },
-  { name: 'settings', path: '/settings', label: 'Settings', icon: 'material-symbols:settings' }
+  { 
+    name: 'scanner', 
+    path: '/', 
+    label: 'Scan', 
+    icon: 'material-symbols:qr-code-scanner' 
+  },
+  { 
+    name: 'profile', 
+    path: '/profile', 
+    label: 'My Card', 
+    icon: 'material-symbols:person' 
+  },
+  { 
+    name: 'contacts', 
+    path: '/contacts', 
+    label: 'Contacts', 
+    icon: 'material-symbols:contacts' 
+  },
+  { 
+    name: 'chat',  // ✅ NEW CHAT TAB
+    path: '/chat', 
+    label: 'Chat', 
+    icon: 'material-symbols:chat' 
+  },
+  { 
+    name: 'settings', 
+    path: '/settings', 
+    label: 'Settings', 
+    icon: 'material-symbols:settings' 
+  }
 ])
 
 // Dark mode logic

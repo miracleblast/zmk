@@ -62,9 +62,22 @@
             @click="viewContact(contact)"
           >
             <div class="flex items-center space-x-4">
-              <!-- Contact Avatar -->
-              <div class="w-12 h-12 bg-zoom-500 rounded-xl flex items-center justify-center text-white relative">
-                <Icon :icon="getCategoryIcon(contact.category)" class="text-xl" />
+              <!-- Contact Avatar with Profile Picture -->
+              <div 
+                class="w-12 h-12 rounded-xl flex items-center justify-center text-white relative overflow-hidden"
+                :class="contact.image ? 'bg-transparent' : 'bg-zoom-500'"
+              >
+                <!-- Show profile picture if available -->
+                <img 
+                  v-if="contact.image && contact.image !== ''"
+                  :src="contact.image"
+                  class="w-full h-full object-cover"
+                  alt="Profile"
+                >
+                <!-- Fallback to icon if no image -->
+                <div v-else class="flex items-center justify-center w-full h-full">
+                  <Icon :icon="getCategoryIcon(contact.category)" class="text-xl" />
+                </div>
                 <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
 
@@ -96,6 +109,22 @@
 
               <!-- Quick Actions -->
               <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <!-- Chat Button -->
+                <button 
+                  @click.stop="openChat(contact)"
+                  class="p-2 text-green-500 hover:bg-green-500 hover:text-white rounded-full transition-colors relative"
+                  :title="hasChatConversation(contact.id) ? 'Continue Chat' : 'Start Chat'"
+                >
+                  <Icon icon="material-symbols:chat" class="text-lg" />
+                  <!-- Unread badge -->
+                  <div 
+                    v-if="getUnreadCount(contact.id) > 0"
+                    class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                  >
+                    {{ getUnreadCount(contact.id) }}
+                  </div>
+                </button>
+                
                 <button 
                   v-if="contact.phone"
                   @click.stop="callContact(contact)"
@@ -154,6 +183,16 @@
                 title="Facebook"
               >
                 <Icon icon="logos:facebook" class="text-lg" />
+              </a>
+              <a 
+                v-if="contact.socialMedia.wechat"
+                :href="formatWeChatUrl(contact.socialMedia.wechat)"
+                target="_blank"
+                @click.stop
+                class="text-[#07C160] hover:scale-110 transition-transform"
+                title="WeChat"
+              >
+                <Icon icon="logos:wechat" class="text-lg" />
               </a>
               <a 
                 v-if="contact.socialMedia.whatsapp"
@@ -230,8 +269,18 @@
           <div class="space-y-6">
             <!-- Profile Header -->
             <div class="text-center">
-              <div class="w-20 h-20 bg-zoom-500 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-3">
-                <Icon :icon="getCategoryIcon(selectedContact.category)" />
+              <!-- Profile Picture in Modal -->
+              <div 
+                class="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-3 overflow-hidden"
+                :class="selectedContact.image ? 'bg-transparent' : 'bg-zoom-500'"
+              >
+                <img 
+                  v-if="selectedContact.image && selectedContact.image !== ''"
+                  :src="selectedContact.image"
+                  class="w-full h-full object-cover"
+                  alt="Profile"
+                >
+                <Icon v-else :icon="getCategoryIcon(selectedContact.category)" />
               </div>
               <h4 class="text-lg font-semibold text-gray-800 dark:text-white font-poppins">
                 {{ contactEngine.generateDisplayName(selectedContact) }}
@@ -355,34 +404,7 @@
                 </a>
               </div>
             </div>
-<!-- In contact card, add chat button -->
-<div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-  <!-- Existing call/email buttons... -->
-  
-  <!-- Chat Button -->
-  <button 
-    v-if="isPremium"
-    @click.stop="openChat(contact)"
-    class="p-2 text-green-500 hover:bg-green-500 hover:text-white rounded-full transition-colors"
-    title="Chat"
-  >
-    <Icon icon="material-symbols:chat" class="text-lg" />
-  </button>
-</div>
 
-<!-- Chat Modal -->
-<div 
-  v-if="activeChatContact"
-  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-  @click="activeChatContact = null"
->
-  <div 
-    class="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl h-96"
-    @click.stop
-  >
-    <ChatInterface :contact="activeChatContact" />
-  </div>
-</div>
             <!-- Action Buttons -->
             <div class="flex space-x-3 pt-4">
               <button 
@@ -411,26 +433,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Chat Modal -->
+    <div 
+      v-if="activeChatContact"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      @click="closeChat"
+    >
+      <div 
+        class="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl h-[80vh] flex flex-col"
+        @click.stop
+      >
+        <ChatInterface :contact="activeChatContact" @close="closeChat" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useContactsStore } from '../stores/contacts'
+import { useChatStore } from '../stores/chat'
 import { StorageEngine } from '../engines/StorageEngine'
 import { ContactEngine } from '../engines/ContactEngine'
-import { ChatEngine } from '../engines/ChatEngine'
+import ChatInterface from '../components/ChatInterface.vue'
 
+const router = useRouter()
 const contactsStore = useContactsStore()
+const chatStore = useChatStore()
 const storageEngine = new StorageEngine()
 const contactEngine = new ContactEngine()
 
-
 const searchQuery = ref('')
 const activeCategory = ref('all')
-const activeSubcategory = ref('all')
 const selectedContact = ref<any>(null)
+const activeChatContact = ref<any>(null)
 const categories = ref<any[]>([])
 
 // Alibaba-style categories
@@ -499,12 +538,9 @@ onMounted(async () => {
     const contacts = await storageEngine.getContacts()
     contactsStore.setContacts(contacts)
   }
-})
-
-const activeSubcategories = computed(() => {
-  if (activeCategory.value === 'all') return []
-  const category = categories.value.find(cat => cat.id === activeCategory.value)
-  return category?.subcategories || []
+  
+  // Initialize chat store
+  await chatStore.initialize()
 })
 
 const filteredContacts = computed(() => {
@@ -550,28 +586,120 @@ const getCategoryIcon = (category: string) => {
   return found?.icon || 'material-symbols:person'
 }
 
+// ✅ FIXED: PROPER SOCIAL MEDIA CHECK
 const hasSocialMedia = (socialMedia: any) => {
-  return socialMedia && Object.values(socialMedia).some(value => value !== undefined)
+  if (!socialMedia) return false
+  return Object.values(socialMedia).some(value => value && value !== '')
 }
 
+// ✅ FIXED: PROPER SOCIAL MEDIA PLATFORMS WITH CORRECT SYNTAX
 const getSocialMediaPlatforms = (socialMedia: any) => {
   const platforms = []
-  if (socialMedia.linkedin) platforms.push({ name: 'LinkedIn', url: socialMedia.linkedin, icon: 'logos:linkedin-icon', color: '#0077b5' })
-  if (socialMedia.twitter) platforms.push({ name: 'Twitter', url: socialMedia.twitter, icon: 'logos:twitter', color: '#1da1f2' })
-  if (socialMedia.instagram) platforms.push({ name: 'Instagram', url: socialMedia.instagram, icon: 'logos:instagram-icon', color: '#e4405f' })
-  if (socialMedia.facebook) platforms.push({ name: 'Facebook', url: socialMedia.facebook, icon: 'logos:facebook', color: '#1877f2' })
-  if (socialMedia.whatsapp) platforms.push({ name: 'WhatsApp', url: socialMedia.whatsapp, icon: 'logos:whatsapp-icon', color: '#25d366' })
+  
+  if (socialMedia.linkedin && socialMedia.linkedin !== '') {
+    platforms.push({ 
+      name: 'LinkedIn', 
+      url: socialMedia.linkedin, 
+      icon: 'logos:linkedin-icon', 
+      color: '#0077b5' 
+    })
+  }
+  
+  if (socialMedia.twitter && socialMedia.twitter !== '') {
+    platforms.push({ 
+      name: 'Twitter', 
+      url: socialMedia.twitter, 
+      icon: 'logos:twitter', 
+      color: '#1da1f2' 
+    })
+  }
+  
+  if (socialMedia.instagram && socialMedia.instagram !== '') {
+    platforms.push({ 
+      name: 'Instagram', 
+      url: socialMedia.instagram, 
+      icon: 'logos:instagram-icon', 
+      color: '#e4405f' 
+    })
+  }
+  
+  if (socialMedia.facebook && socialMedia.facebook !== '') {
+    platforms.push({ 
+      name: 'Facebook', 
+      url: socialMedia.facebook, 
+      icon: 'logos:facebook', 
+      color: '#1877f2' 
+    })
+  }
+  
+  if (socialMedia.wechat && socialMedia.wechat !== '') {
+    platforms.push({ 
+      name: 'WeChat', 
+      url: formatWeChatUrl(socialMedia.wechat), 
+      icon: 'logos:wechat', 
+      color: '#07C160' 
+    })
+  }
+  
+  if (socialMedia.whatsapp && socialMedia.whatsapp !== '') {
+    platforms.push({ 
+      name: 'WhatsApp', 
+      url: socialMedia.whatsapp, 
+      icon: 'logos:whatsapp-icon', 
+      color: '#25d366' 
+    })
+  }
+  
+  if (socialMedia.youtube && socialMedia.youtube !== '') {
+    platforms.push({ 
+      name: 'YouTube', 
+      url: socialMedia.youtube, 
+      icon: 'logos:youtube-icon', 
+      color: '#ff0000' 
+    })
+  }
+  
+  if (socialMedia.github && socialMedia.github !== '') {
+    platforms.push({ 
+      name: 'GitHub', 
+      url: socialMedia.github, 
+      icon: 'logos:github-icon', 
+      color: '#000000' 
+    })
+  }
+  
   return platforms
+}
+
+// ✅ FIXED: PROPER WECHAT URL FORMATTING
+const formatWeChatUrl = (wechatId: string) => {
+  // WeChat IDs can be formatted for QR code or direct messaging
+  if (wechatId.startsWith('http')) {
+    return wechatId
+  }
+  return `weixin://dl/chat?${wechatId}`
+}
+
+// ✅ CHAT FUNCTIONALITY
+const hasChatConversation = (contactId: string) => {
+  return chatStore.getUnreadCount(contactId) > 0 || chatStore.getConversationByContactId(contactId)
+}
+
+const getUnreadCount = (contactId: string) => {
+  return chatStore.getUnreadCount(contactId)
+}
+
+const openChat = (contact: any) => {
+  activeChatContact.value = contact
+}
+
+const closeChat = () => {
+  activeChatContact.value = null
 }
 
 const setActiveCategory = (categoryId: string) => {
   activeCategory.value = categoryId
-  activeSubcategory.value = 'all'
   searchQuery.value = ''
-}
-
-const setActiveSubcategory = (subcategoryId: string) => {
-  activeSubcategory.value = subcategoryId
 }
 
 const handleSearch = () => {
@@ -641,7 +769,7 @@ const formatDate = (date: Date) => {
 }
 </script>
 
-<style>
+<style scoped>
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

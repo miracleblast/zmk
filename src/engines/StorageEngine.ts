@@ -1,12 +1,12 @@
+// src/engines/StorageEngine.ts
 import { openDB } from 'idb';
-// ADD THIS SOCIAL MEDIA INTERFACE
+
 export interface GlobalBusinessLocation {
   country: string;
   city: string;
   zipCode?: string;
   address?: string;
   timezone?: string;
-  // SPECIFIC FIELDS FOR TARGET MARKETS
   marketFocus?: ('africa' | 'china' | 'india' | 'russia')[];
   languages?: string[];
 }
@@ -18,7 +18,7 @@ export interface EnhancedSocialMedia {
   instagram?: string;
   whatsapp?: string;
   youtube?: string;
-  wechat?: string;  // ✅ REPLACED TIKTOK WITH WECHAT
+  wechat?: string;
   github?: string;
 }
 
@@ -38,11 +38,8 @@ export interface BusinessProfile {
     type: string;
     size: number;
   }[];
-  // ✅ ENHANCED LOCATION FOR GLOBAL BUSINESS
   location?: GlobalBusinessLocation;
   socialMedia?: EnhancedSocialMedia;
-  // ✅ BUSINESS SPECIFIC FIELDS
-  businessScope?: string;
   targetMarkets?: ('africa' | 'china' | 'india' | 'russia')[];
   preferredLanguages?: string[];
   createdAt: Date;
@@ -63,7 +60,6 @@ export interface ScannedContact {
   scannedAt: Date;
   notes?: string;
   tags: string[];
-  // ✅ ENHANCED FIELDS
   socialMedia?: EnhancedSocialMedia;
   location?: GlobalBusinessLocation;
   targetMarkets?: ('africa' | 'china' | 'india' | 'russia')[];
@@ -78,37 +74,41 @@ export interface AppSettings {
 }
 
 export interface ChatMessage {
-  id: string
-  contactId: string
-  senderId: string
-  content: string
-  timestamp: Date
-  messageType: 'text' | 'image' | 'file' | 'contact'
-  status: 'sent' | 'delivered' | 'read'
-  encrypted?: boolean
+  id: string;
+  contactId: string;
+  senderId: string;
+  content: string;
+  timestamp: Date;
+  messageType: 'text' | 'image' | 'file' | 'contact';
+  status: 'sent' | 'delivered' | 'read';
+  encrypted?: boolean;
 }
 
 export interface ChatConversation {
-  id: string
-  contactId: string
-  lastMessage: string
-  lastMessageTime: Date
-  unreadCount: number
-  isPinned: boolean
-  isMuted: boolean
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  contactId: string;
+  lastMessage: string;
+  lastMessageTime: Date;
+  unreadCount: number;
+  isPinned: boolean;
+  isMuted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class StorageEngine {
   private dbName = 'ZoomkaDB';
-  private version = 4;
+  private version = 5; // ✅ INCREASED VERSION TO FORCE DB UPDATE
 
   async initDB() {
     return openDB(this.dbName, this.version, {
       upgrade(db, oldVersion) {
+        console.log(`🔄 Upgrading database from version ${oldVersion} to ${db.version}`);
+        
+        // ✅ COMPLETE DATABASE REBUILD TO ENSURE ALL TABLES EXIST
         if (!db.objectStoreNames.contains('profiles')) {
           db.createObjectStore('profiles', { keyPath: 'id' });
+          console.log('✅ Created profiles store');
         }
         
         if (!db.objectStoreNames.contains('contacts')) {
@@ -116,63 +116,70 @@ export class StorageEngine {
           contactStore.createIndex('scannedAt', 'scannedAt');
           contactStore.createIndex('category', 'category');
           contactStore.createIndex('company', 'company');
+          console.log('✅ Created contacts store');
         }
         
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings', { keyPath: 'id' });
+          console.log('✅ Created settings store');
         }
         
         if (!db.objectStoreNames.contains('categories')) {
           db.createObjectStore('categories', { keyPath: 'id' });
+          console.log('✅ Created categories store');
         }
-            // Add chat tables
-      if (!db.objectStoreNames.contains('messages')) {
-        const messageStore = db.createObjectStore('messages', { keyPath: 'id' })
-        messageStore.createIndex('contactId', 'contactId')
-        messageStore.createIndex('timestamp', 'timestamp')
+        
+        // ✅ ENSURED CHAT TABLES ARE CREATED
+        if (!db.objectStoreNames.contains('messages')) {
+          const messageStore = db.createObjectStore('messages', { keyPath: 'id' });
+          messageStore.createIndex('contactId', 'contactId');
+          messageStore.createIndex('timestamp', 'timestamp');
+          console.log('✅ Created messages store');
+        }
+        
+        if (!db.objectStoreNames.contains('conversations')) {
+          const conversationStore = db.createObjectStore('conversations', { keyPath: 'id' });
+          conversationStore.createIndex('lastMessageTime', 'lastMessageTime');
+          conversationStore.createIndex('contactId', 'contactId');
+          console.log('✅ Created conversations store');
+        }
+      },
+    });
+  }
+
+  // Chat methods
+  async saveMessage(message: ChatMessage): Promise<void> {
+    const db = await this.initDB();
+    await db.put('messages', message);
+  }
+
+  async getMessages(contactId: string): Promise<ChatMessage[]> {
+    const db = await this.initDB();
+    return db.getAllFromIndex('messages', 'contactId', contactId);
+  }
+
+  async saveConversation(conversation: ChatConversation): Promise<void> {
+    const db = await this.initDB();
+    await db.put('conversations', conversation);
+  }
+
+  async getConversations(): Promise<ChatConversation[]> {
+    const db = await this.initDB();
+    return db.getAllFromIndex('conversations', 'lastMessageTime');
+  }
+
+  async markMessagesAsRead(contactId: string): Promise<void> {
+    const db = await this.initDB();
+    const messages = await this.getMessages(contactId);
+    
+    const tx = db.transaction('messages', 'readwrite');
+    for (const message of messages) {
+      if (message.senderId !== 'me' && message.status !== 'read') {
+        await tx.store.put({ ...message, status: 'read' });
       }
-      
-      if (!db.objectStoreNames.contains('conversations')) {
-        const conversationStore = db.createObjectStore('conversations', { keyPath: 'id' })
-        conversationStore.createIndex('lastMessageTime', 'lastMessageTime')
-      }
-    },
-  })
-}
-
-// Chat methods
-async saveMessage(message: ChatMessage): Promise<void> {
-  const db = await this.initDB()
-  await db.put('messages', message)
-}
-
-async getMessages(contactId: string): Promise<ChatMessage[]> {
-  const db = await this.initDB()
-  return db.getAllFromIndex('messages', 'contactId', contactId)
-}
-
-async saveConversation(conversation: ChatConversation): Promise<void> {
-  const db = await this.initDB()
-  await db.put('conversations', conversation)
-}
-
-async getConversations(): Promise<ChatConversation[]> {
-  const db = await this.initDB()
-  return db.getAllFromIndex('conversations', 'lastMessageTime')
-}
-
-async markMessagesAsRead(contactId: string): Promise<void> {
-  const db = await this.initDB()
-  const messages = await this.getMessages(contactId)
-  
-  const tx = db.transaction('messages', 'readwrite')
-  messages.forEach(message => {
-    if (message.senderId !== 'me' && message.status !== 'read') {
-      tx.store.put({ ...message, status: 'read' })
     }
-  })
-  await tx.done
-}
+    await tx.done;
+  }
 
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -197,7 +204,7 @@ async markMessagesAsRead(contactId: string): Promise<void> {
     return new File([u8arr], filename, { type: mime || type });
   }
 
-  // SIMPLIFIED: No complex object merging
+  // ✅ FIXED: PROPERLY HANDLE PROXY OBJECTS AND CLONING
   async saveProfile(profileData: Partial<BusinessProfile>): Promise<void> {
     const db = await this.initDB();
     const existingProfile = await this.getCurrentProfile();
@@ -216,11 +223,49 @@ async markMessagesAsRead(contactId: string): Promise<void> {
       updatedAt: new Date()
     };
 
+    // ✅ FIXED: DESTRUCTURE PROXY OBJECTS TO PLAIN OBJECTS
+    if (profileData.location) {
+      baseProfile.location = {
+        country: String(profileData.location.country || ''),
+        city: String(profileData.location.city || ''),
+        zipCode: String(profileData.location.zipCode || ''),
+        address: String(profileData.location.address || ''),
+        marketFocus: Array.isArray(profileData.location.marketFocus) 
+          ? [...profileData.location.marketFocus] 
+          : [],
+        languages: Array.isArray(profileData.location.languages) 
+          ? [...profileData.location.languages] 
+          : []
+      };
+      console.log('📍 Saving location data:', baseProfile.location);
+    }
+
+    // ✅ FIXED: PROPERLY HANDLE SOCIAL MEDIA
+    if (profileData.socialMedia) {
+      baseProfile.socialMedia = {
+        linkedin: String(profileData.socialMedia.linkedin || ''),
+        twitter: String(profileData.socialMedia.twitter || ''),
+        instagram: String(profileData.socialMedia.instagram || ''),
+        facebook: String(profileData.socialMedia.facebook || ''),
+        whatsapp: String(profileData.socialMedia.whatsapp || ''),
+        youtube: String(profileData.socialMedia.youtube || ''),
+        wechat: String(profileData.socialMedia.wechat || ''),
+        github: String(profileData.socialMedia.github || '')
+      };
+    }
+
+    // ✅ FIXED: PROPERLY HANDLE TARGET MARKETS
+    if (profileData.targetMarkets) {
+      baseProfile.targetMarkets = Array.isArray(profileData.targetMarkets) 
+        ? [...profileData.targetMarkets] 
+        : ['africa'];
+    }
+
     // Process image
     if (profileData.image && this.isFileObject(profileData.image)) {
       baseProfile.image = await this.fileToBase64(profileData.image as any);
     } else if (profileData.image) {
-      baseProfile.image = profileData.image as string;
+      baseProfile.image = String(profileData.image);
     }
 
     // Process flyers
@@ -229,31 +274,41 @@ async markMessagesAsRead(contactId: string): Promise<void> {
         profileData.flyers.map(async (flyer: any) => {
           if (flyer.file && this.isFileObject(flyer.file)) {
             return {
-              name: flyer.name,
+              name: String(flyer.name),
               data: await this.fileToBase64(flyer.file),
-              type: flyer.file.type,
-              size: flyer.file.size
+              type: String(flyer.file.type),
+              size: Number(flyer.file.size)
             };
           }
-          return flyer;
+          return {
+            name: String(flyer.name),
+            data: String(flyer.data),
+            type: String(flyer.type),
+            size: Number(flyer.size)
+          };
         })
       );
     }
 
     // Update other fields
-    if (profileData.name) baseProfile.name = profileData.name;
-    if (profileData.position) baseProfile.position = profileData.position;
-    if (profileData.company) baseProfile.company = profileData.company;
-    if (profileData.category) baseProfile.category = profileData.category;
-    if (profileData.phone) baseProfile.phone = profileData.phone;
-    if (profileData.email) baseProfile.email = profileData.email;
-    if (profileData.website) baseProfile.website = profileData.website;
+    if (profileData.name) baseProfile.name = String(profileData.name);
+    if (profileData.position) baseProfile.position = String(profileData.position);
+    if (profileData.company) baseProfile.company = String(profileData.company);
+    if (profileData.category) baseProfile.category = String(profileData.category);
+    if (profileData.phone) baseProfile.phone = String(profileData.phone);
+    if (profileData.email) baseProfile.email = String(profileData.email);
+    if (profileData.website) baseProfile.website = String(profileData.website);
     
     // Always update timestamp
     baseProfile.updatedAt = new Date();
 
-    console.log('💾 Saving profile to database');
-    await db.put('profiles', baseProfile);
+    console.log('💾 Saving complete profile to database');
+    console.log('📍 Location:', baseProfile.location);
+    console.log('🎯 Target Markets:', baseProfile.targetMarkets);
+    
+    // ✅ FIXED: USE JSON PARSE/STRINGIFY TO ENSURE PLAIN OBJECT
+    const profileToSave = JSON.parse(JSON.stringify(baseProfile));
+    await db.put('profiles', profileToSave);
   }
 
   private isFileObject(value: any): boolean {
@@ -283,39 +338,39 @@ async markMessagesAsRead(contactId: string): Promise<void> {
     }
   }
 
-// NUCLEAR OPTION - COMPLETE DATA CLEANING
-async saveContact(contact: Omit<ScannedContact, 'id'>): Promise<string> {
-  const db = await this.initDB();
-  const id = Date.now().toString();
-  
-  // ✅ MANUALLY CREATE EVERY FIELD AS PRIMITIVE
-  const contactWithId = {
-    id: id,
-    name: contact.name ? String(contact.name) : 'Unknown Contact',
-    position: contact.position ? String(contact.position) : '',
-    company: contact.company ? String(contact.company) : '',
-    email: contact.email ? String(contact.email) : '',
-    phone: contact.phone ? String(contact.phone) : '',
-    category: contact.category ? String(contact.category) : 'General',
-    website: contact.website ? String(contact.website) : '',
-    image: contact.image ? String(contact.image) : '',
-    rawData: contact.rawData ? String(contact.rawData) : '',
-    scannedAt: contact.scannedAt ? new Date(contact.scannedAt).toISOString() : new Date().toISOString(),
-    notes: contact.notes ? String(contact.notes) : '',
-    tags: Array.isArray(contact.tags) ? contact.tags.map(t => String(t)) : ['qr-scanned'],
-    socialMedia: contact.socialMedia ? JSON.parse(JSON.stringify(contact.socialMedia)) : undefined
-  };
-  
-  console.log('💾 Nuclear clean contact:', contactWithId);
-  
-  try {
-    await db.put('contacts', contactWithId);
-    return id;
-  } catch (error) {
-    console.error('❌ Nuclear save failed:', error);
-    throw error;
+  // NUCLEAR OPTION - COMPLETE DATA CLEANING
+  async saveContact(contact: Omit<ScannedContact, 'id'>): Promise<string> {
+    const db = await this.initDB();
+    const id = Date.now().toString();
+    
+    // ✅ MANUALLY CREATE EVERY FIELD AS PRIMITIVE
+    const contactWithId = {
+      id: id,
+      name: contact.name ? String(contact.name) : 'Unknown Contact',
+      position: contact.position ? String(contact.position) : '',
+      company: contact.company ? String(contact.company) : '',
+      email: contact.email ? String(contact.email) : '',
+      phone: contact.phone ? String(contact.phone) : '',
+      category: contact.category ? String(contact.category) : 'General',
+      website: contact.website ? String(contact.website) : '',
+      image: contact.image ? String(contact.image) : '',
+      rawData: contact.rawData ? String(contact.rawData) : '',
+      scannedAt: contact.scannedAt ? new Date(contact.scannedAt).toISOString() : new Date().toISOString(),
+      notes: contact.notes ? String(contact.notes) : '',
+      tags: Array.isArray(contact.tags) ? contact.tags.map(t => String(t)) : ['qr-scanned'],
+      socialMedia: contact.socialMedia ? JSON.parse(JSON.stringify(contact.socialMedia)) : undefined
+    };
+    
+    console.log('💾 Nuclear clean contact:', contactWithId);
+    
+    try {
+      await db.put('contacts', contactWithId);
+      return id;
+    } catch (error) {
+      console.error('❌ Nuclear save failed:', error);
+      throw error;
+    }
   }
-}
 
   async getContacts(): Promise<ScannedContact[]> {
     const db = await this.initDB();
@@ -371,63 +426,86 @@ async saveContact(contact: Omit<ScannedContact, 'id'>): Promise<string> {
     };
   }
 
-async getCategories(): Promise<any[]> {
-  return [
-    {
-      id: 'technology',
-      name: 'Technology',
-      icon: 'material-symbols:code',
-      subcategories: [
-        { id: 'software', name: 'Software Development', icon: 'material-symbols:code' },
-        { id: 'hardware', name: 'Hardware', icon: 'material-symbols:computer' },
-        { id: 'ai', name: 'Artificial Intelligence', icon: 'material-symbols:smart-toy' },
-        { id: 'cybersecurity', name: 'Cybersecurity', icon: 'material-symbols:shield' }
-      ]
-    },
-    {
-      id: 'import-export',
-      name: 'Import/Export',
-      icon: 'material-symbols:airplane-ticket',
-      subcategories: [
-        { id: 'electronics', name: 'Electronics', icon: 'material-symbols:devices' },
-        { id: 'textiles', name: 'Textiles', icon: 'material-symbols:checkroom' },
-        { id: 'agriculture', name: 'Agriculture', icon: 'material-symbols:agriculture' },
-        { id: 'automotive', name: 'Automotive', icon: 'material-symbols:directions-car' }
-      ]
-    },
-    {
-      id: 'manufacturing',
-      name: 'Manufacturing',
-      icon: 'material-symbols:factory',
-      subcategories: [
-        { id: 'machinery', name: 'Machinery', icon: 'material-symbols:build' },
-        { id: 'textiles', name: 'Textiles', icon: 'material-symbols:checkroom' },
-        { id: 'food', name: 'Food Processing', icon: 'material-symbols:restaurant' },
-        { id: 'chemicals', name: 'Chemicals', icon: 'material-symbols:science' }
-      ]
-    },
-    {
-      id: 'services',
-      name: 'Services',
-      icon: 'material-symbols:engineering',
-      subcategories: [
-        { id: 'consulting', name: 'Consulting', icon: 'material-symbols:groups' },
-        { id: 'logistics', name: 'Logistics', icon: 'material-symbols:local-shipping' },
-        { id: 'finance', name: 'Financial', icon: 'material-symbols:attach-money' },
-        { id: 'healthcare', name: 'Healthcare', icon: 'material-symbols:medical-services' }
-      ]
-    },
-    {
-      id: 'retail',
-      name: 'Retail',
-      icon: 'material-symbols:storefront',
-      subcategories: [
-        { id: 'ecommerce', name: 'E-commerce', icon: 'material-symbols:shopping-cart' },
-        { id: 'wholesale', name: 'Wholesale', icon: 'material-symbols:inventory' },
-        { id: 'fashion', name: 'Fashion', icon: 'material-symbols:checkroom' },
-        { id: 'electronics', name: 'Electronics', icon: 'material-symbols:devices' }
-      ]
+  async getCategories(): Promise<any[]> {
+    return [
+      {
+        id: 'technology',
+        name: 'Technology',
+        icon: 'material-symbols:code',
+        subcategories: [
+          { id: 'software', name: 'Software Development', icon: 'material-symbols:code' },
+          { id: 'hardware', name: 'Hardware', icon: 'material-symbols:computer' },
+          { id: 'ai', name: 'Artificial Intelligence', icon: 'material-symbols:smart-toy' },
+          { id: 'cybersecurity', name: 'Cybersecurity', icon: 'material-symbols:shield' }
+        ]
+      },
+      {
+        id: 'import-export',
+        name: 'Import/Export',
+        icon: 'material-symbols:airplane-ticket',
+        subcategories: [
+          { id: 'electronics', name: 'Electronics', icon: 'material-symbols:devices' },
+          { id: 'textiles', name: 'Textiles', icon: 'material-symbols:checkroom' },
+          { id: 'agriculture', name: 'Agriculture', icon: 'material-symbols:agriculture' },
+          { id: 'automotive', name: 'Automotive', icon: 'material-symbols:directions-car' }
+        ]
+      },
+      {
+        id: 'manufacturing',
+        name: 'Manufacturing',
+        icon: 'material-symbols:factory',
+        subcategories: [
+          { id: 'machinery', name: 'Machinery', icon: 'material-symbols:build' },
+          { id: 'textiles', name: 'Textiles', icon: 'material-symbols:checkroom' },
+          { id: 'food', name: 'Food Processing', icon: 'material-symbols:restaurant' },
+          { id: 'chemicals', name: 'Chemicals', icon: 'material-symbols:science' }
+        ]
+      },
+      {
+        id: 'services',
+        name: 'Services',
+        icon: 'material-symbols:engineering',
+        subcategories: [
+          { id: 'consulting', name: 'Consulting', icon: 'material-symbols:groups' },
+          { id: 'logistics', name: 'Logistics', icon: 'material-symbols:local-shipping' },
+          { id: 'finance', name: 'Financial', icon: 'material-symbols:attach-money' },
+          { id: 'healthcare', name: 'Healthcare', icon: 'material-symbols:medical-services' }
+        ]
+      },
+      {
+        id: 'retail',
+        name: 'Retail',
+        icon: 'material-symbols:storefront',
+        subcategories: [
+          { id: 'ecommerce', name: 'E-commerce', icon: 'material-symbols:shopping-cart' },
+          { id: 'wholesale', name: 'Wholesale', icon: 'material-symbols:inventory' },
+          { id: 'fashion', name: 'Fashion', icon: 'material-symbols:checkroom' },
+          { id: 'electronics', name: 'Electronics', icon: 'material-symbols:devices' }
+        ]
       }
     ];
+  }
+
+  // ✅ NEW: CLEAR DATABASE (FOR DEVELOPMENT/TESTING)
+  async clearDatabase(): Promise<void> {
+    try {
+      const db = await this.initDB();
+      await db.clear('profiles');
+      await db.clear('contacts');
+      await db.clear('messages');
+      await db.clear('conversations');
+      console.log('🗑️ Database cleared successfully');
+    } catch (error) {
+      console.error('❌ Failed to clear database:', error);
+    }
+  }
+
+  // ✅ NEW: GET DATABASE INFO
+  async getDatabaseInfo(): Promise<{ stores: string[]; version: number }> {
+    const db = await this.initDB();
+    return {
+      stores: Array.from(db.objectStoreNames),
+      version: db.version
+    };
   }
 }

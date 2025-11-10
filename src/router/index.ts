@@ -9,7 +9,7 @@ const router = createRouter({
       component: () => import('../views/ScannerView.vue')
     },
     {
-      path: '/https-test',  // ADD THIS
+      path: '/https-test',
       name: 'https-test',
       component: () => import('../views/HTTPSTest.vue')
     },
@@ -27,6 +27,11 @@ const router = createRouter({
       path: '/contacts',
       name: 'contacts', 
       component: () => import('../views/ContactsView.vue')
+    },
+    {
+      path: '/chat',  // ✅ NEW CHAT ROUTE
+      name: 'chat',
+      component: () => import('../views/ChatView.vue')
     },
     {
       path: '/settings',

@@ -177,19 +177,21 @@ export class ContactEngine {
   }
 
   // Parse QR data with enhanced logic
-  private parseQRData(data: string): ScannedContact {
-  // vCard parsing
-  if (data.startsWith('BEGIN:VCARD')) {
-    return this.parseVCard(data)
-  }
-  
-  // JSON format - IMPROVED PARSING
+private parseQRData(data: string): ScannedContact {
+  // JSON format - IMPROVED PARSING WITH IMAGE SUPPORT
   if (data.startsWith('{') && data.endsWith('}')) {
     try {
       const jsonData = JSON.parse(data)
       console.log('📱 Parsing JSON QR data:', jsonData)
       
-      // ✅ CREATE CLEAN, SERIALIZABLE OBJECT
+      // ✅ ENHANCED IMAGE HANDLING
+      let profileImage = ''
+      if (jsonData.image || jsonData.photo || jsonData.avatar) {
+        profileImage = jsonData.image || jsonData.photo || jsonData.avatar
+        console.log('🖼️ Found profile image in QR data')
+      }
+      
+      // ✅ CREATE CLEAN, SERIALIZABLE OBJECT WITH IMAGE
       const contact: ScannedContact = {
         id: Date.now().toString(),
         name: jsonData.name || jsonData.fullName || 'Unknown Contact',
@@ -199,7 +201,7 @@ export class ContactEngine {
         phone: jsonData.phone || jsonData.tel || jsonData.mobile || '',
         website: jsonData.website || jsonData.url || jsonData.web || '',
         category: jsonData.category || jsonData.industry || 'General',
-        image: jsonData.image || jsonData.photo || jsonData.avatar || '',
+        image: profileImage, // ✅ PROPERLY SET IMAGE
         rawData: data,
         scannedAt: new Date(),
         notes: jsonData.notes || jsonData.description || jsonData.bio || '',
@@ -210,6 +212,7 @@ export class ContactEngine {
         )
       };
       
+      console.log('✅ Contact created with image:', contact.image ? 'Yes' : 'No')
       return contact;
     } catch (error) {
       console.error('JSON parsing failed:', error)

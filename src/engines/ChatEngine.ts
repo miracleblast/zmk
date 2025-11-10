@@ -1,26 +1,6 @@
 // src/engines/ChatEngine.ts
-export interface ChatMessage {
-  id: string
-  contactId: string // Reference to ScannedContact
-  senderId: string // 'me' or contactId
-  content: string
-  timestamp: Date
-  messageType: 'text' | 'image' | 'file' | 'contact'
-  status: 'sent' | 'delivered' | 'read'
-  encrypted?: boolean
-}
-
-export interface ChatConversation {
-  id: string
-  contactId: string
-  lastMessage: string
-  lastMessageTime: Date
-  unreadCount: number
-  isPinned: boolean
-  isMuted: boolean
-  createdAt: Date
-  updatedAt: Date
-}
+import { StorageEngine } from "./StorageEngine"
+import type { ChatMessage, ChatConversation } from "./StorageEngine"
 
 export class ChatEngine {
   private storage: StorageEngine
@@ -47,6 +27,23 @@ export class ChatEngine {
     return message.id
   }
 
+  // ✅ FIXED: IMPLEMENT MISSING METHOD
+  private async updateConversation(contactId: string, lastMessage: string, timestamp: Date) {
+    const conversation: ChatConversation = {
+      id: `conv_${contactId}`,
+      contactId,
+      lastMessage,
+      lastMessageTime: timestamp,
+      unreadCount: 0,
+      isPinned: false,
+      isMuted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    await this.storage.saveConversation(conversation)
+  }
+
   // Get conversation with contact
   async getConversation(contactId: string): Promise<ChatMessage[]> {
     return this.storage.getMessages(contactId)
@@ -64,7 +61,6 @@ export class ChatEngine {
 
   // Encrypt message content (premium feature)
   private encryptMessage(content: string): string {
-    // Simple XOR encryption for demo - upgrade to AES for production
     const key = 'zoomka-chat-key'
     return btoa(
       content.split('').map((char, i) => 
@@ -81,3 +77,6 @@ export class ChatEngine {
     ).join('')
   }
 }
+
+// Export interfaces for use in other files
+export type { ChatMessage, ChatConversation }
