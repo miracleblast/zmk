@@ -77,6 +77,29 @@ export interface AppSettings {
   sound: boolean;
 }
 
+export interface ChatMessage {
+  id: string
+  contactId: string
+  senderId: string
+  content: string
+  timestamp: Date
+  messageType: 'text' | 'image' | 'file' | 'contact'
+  status: 'sent' | 'delivered' | 'read'
+  encrypted?: boolean
+}
+
+export interface ChatConversation {
+  id: string
+  contactId: string
+  lastMessage: string
+  lastMessageTime: Date
+  unreadCount: number
+  isPinned: boolean
+  isMuted: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export class StorageEngine {
   private dbName = 'ZoomkaDB';
   private version = 4;
@@ -102,9 +125,54 @@ export class StorageEngine {
         if (!db.objectStoreNames.contains('categories')) {
           db.createObjectStore('categories', { keyPath: 'id' });
         }
-      },
-    });
-  }
+            // Add chat tables
+      if (!db.objectStoreNames.contains('messages')) {
+        const messageStore = db.createObjectStore('messages', { keyPath: 'id' })
+        messageStore.createIndex('contactId', 'contactId')
+        messageStore.createIndex('timestamp', 'timestamp')
+      }
+      
+      if (!db.objectStoreNames.contains('conversations')) {
+        const conversationStore = db.createObjectStore('conversations', { keyPath: 'id' })
+        conversationStore.createIndex('lastMessageTime', 'lastMessageTime')
+      }
+    },
+  })
+}
+
+// Chat methods
+async saveMessage(message: ChatMessage): Promise<void> {
+  const db = await this.initDB()
+  await db.put('messages', message)
+}
+
+async getMessages(contactId: string): Promise<ChatMessage[]> {
+  const db = await this.initDB()
+  return db.getAllFromIndex('messages', 'contactId', contactId)
+}
+
+async saveConversation(conversation: ChatConversation): Promise<void> {
+  const db = await this.initDB()
+  await db.put('conversations', conversation)
+}
+
+async getConversations(): Promise<ChatConversation[]> {
+  const db = await this.initDB()
+  return db.getAllFromIndex('conversations', 'lastMessageTime')
+}
+
+async markMessagesAsRead(contactId: string): Promise<void> {
+  const db = await this.initDB()
+  const messages = await this.getMessages(contactId)
+  
+  const tx = db.transaction('messages', 'readwrite')
+  messages.forEach(message => {
+    if (message.senderId !== 'me' && message.status !== 'read') {
+      tx.store.put({ ...message, status: 'read' })
+    }
+  })
+  await tx.done
+}
 
   private async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {

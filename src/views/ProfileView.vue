@@ -8,34 +8,51 @@
       </div>
 
       <!-- Profile Card -->
-      <div class="glass-card p-6 max-w-md mx-auto mb-8">
-        <!-- Profile Image with Upload -->
-        <div class="flex justify-center mb-6 relative">
-          <div class="relative group">
-            <div 
-              class="w-24 h-24 bg-zoom-500 rounded-2xl flex items-center justify-center text-white text-4xl cursor-pointer overflow-hidden"
-              @click="triggerImageUpload"
-            >
-              <img 
-                v-if="profile.image" 
-                :src="profile.image" 
-                class="w-full h-full object-cover"
-                alt="Profile"
-              >
-              <Icon v-else icon="material-symbols:person" />
-            </div>
-            <input 
-              ref="imageInput"
-              type="file" 
-              accept="image/*" 
-              class="hidden" 
-              @change="handleImageUpload"
-            >
-            <div class="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Icon icon="material-symbols:camera-enhance" class="text-white text-2xl" />
-            </div>
-          </div>
+<div class="glass-card p-6 max-w-md mx-auto mb-8">
+  <!-- Profile Image with Upload - FIXED -->
+  <div class="flex justify-center mb-6 relative">
+    <div class="relative group">
+      <div 
+        class="w-24 h-24 bg-zoom-500 rounded-2xl flex items-center justify-center text-white text-4xl cursor-pointer overflow-hidden border-2 border-zoom-300 border-dashed"
+        @click="triggerImageUpload"
+      >
+        <img 
+          v-if="profile.image && profile.image !== ''" 
+          :src="profile.image" 
+          class="w-full h-full object-cover"
+          alt="Profile"
+        >
+        <div v-else class="text-center text-white/80">
+          <Icon icon="material-symbols:person" class="text-3xl mb-1" />
+          <p class="text-xs">Add Photo</p>
         </div>
+      </div>
+      
+      <!-- FIXED: Proper file input binding -->
+      <input 
+        ref="imageInput"
+        type="file" 
+        accept="image/*"
+        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        @change="handleImageUpload"
+      >
+      
+      <!-- Upload overlay -->
+      <div class="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <Icon icon="material-symbols:camera-enhance" class="text-white text-2xl" />
+      </div>
+      
+      <!-- Remove image button -->
+      <button 
+        v-if="profile.image && profile.image !== ''"
+        @click.stop="removeProfileImage"
+        class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+        title="Remove photo"
+      >
+        <Icon icon="material-symbols:close" class="text-sm" />
+      </button>
+    </div>
+  </div>
 
         <!-- Business Info Form -->
         <div class="space-y-4">
@@ -491,7 +508,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue' // ✅ ADD nextTick
 import { useProfileStore } from '../stores/profile'
 import { QREngine } from '../engines/QREngine'
 
@@ -504,7 +521,7 @@ const showWebsitePreview = ref(false)
 const qrCode = ref('')
 const isLoading = ref(false)
 
-// ✅ UPDATED PROFILE STRUCTURE WITH GLOBAL BUSINESS FOCUS
+// ✅ UPDATED PROFILE STRUCTURE WITH BETTER IMAGE HANDLING
 const profile = ref({
   name: '',
   position: '',
@@ -513,9 +530,8 @@ const profile = ref({
   phone: '',
   email: '',
   website: '',
-  image: '' as string | ArrayBuffer,
+  image: '' as string, // ✅ CHANGED TO STRING ONLY
   flyers: [] as Array<{ name: string; file: File; size: number; type: string }>,
-  // ✅ ENHANCED SOCIAL MEDIA WITH WECHAT
   socialMedia: {
     linkedin: '',
     twitter: '',
@@ -523,10 +539,9 @@ const profile = ref({
     facebook: '',
     whatsapp: '',
     youtube: '',
-    wechat: '', // ✅ REPLACED TIKTOK WITH WECHAT
+    wechat: '',
     github: ''
   },
-  // ✅ NEW: LOCATION AND TARGET MARKETS
   location: {
     country: '',
     city: '',
@@ -534,56 +549,115 @@ const profile = ref({
     address: '',
     marketFocus: [] as ('africa' | 'china' | 'india' | 'russia')[]
   },
-  targetMarkets: ['africa'] as ('africa' | 'china' | 'india' | 'russia')[] // ✅ DEFAULT TO AFRICA
+  targetMarkets: ['africa'] as ('africa' | 'china' | 'india' | 'russia')[]
 })
 
-// Form validation
-const isFormValid = computed(() => {
-  return profile.value.name && 
-         profile.value.position && 
-         profile.value.company && 
-         profile.value.category && 
-         profile.value.phone && 
-         profile.value.email
-})
+// ✅ FIXED: PROPER IMAGE UPLOAD HANDLING
+const triggerImageUpload = () => {
+  console.log('📸 Triggering image upload...')
+  // Ensure the input element is available
+  if (imageInput.value) {
+    imageInput.value.click()
+  } else {
+    console.error('❌ Image input element not found')
+    // Try to find it again
+    nextTick(() => {
+      if (imageInput.value) {
+        imageInput.value.click()
+      } else {
+        alert('Image upload not available. Please refresh the page.')
+      }
+    })
+  }
+}
 
-// Check if any social media is filled
-const hasSocialMedia = computed(() => {
-  return Object.values(profile.value.socialMedia).some(url => url && url.trim() !== '')
-})
+const handleImageUpload = async (event: Event) => {
+  console.log('🖼️ Handling image upload...')
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (!file) {
+    console.log('❌ No file selected')
+    return
+  }
 
-// Get active social media platforms - UPDATED FOR WECHAT
-const activeSocialMedia = computed(() => {
-  const platforms = [
-    { name: 'LinkedIn', url: profile.value.socialMedia.linkedin, icon: 'logos:linkedin-icon', color: '#0077b5' },
-    { name: 'X', url: profile.value.socialMedia.twitter, icon: 'logos:x', color: '#000000' },
-    { name: 'Instagram', url: profile.value.socialMedia.instagram, icon: 'logos:instagram-icon', color: '#e4405f' },
-    { name: 'Facebook', url: profile.value.socialMedia.facebook, icon: 'logos:facebook', color: '#1877f2' },
-    { name: 'WhatsApp', url: profile.value.socialMedia.whatsapp, icon: 'logos:whatsapp-icon', color: '#25d366' },
-    { name: 'YouTube', url: profile.value.socialMedia.youtube, icon: 'logos:youtube-icon', color: '#ff0000' },
-    { name: 'WeChat', url: profile.value.socialMedia.wechat, icon: 'logos:wechat', color: '#07C160' }, // ✅ ADDED WECHAT
-    { name: 'GitHub', url: profile.value.socialMedia.github, icon: 'logos:github-icon', color: '#000000' }
-  ]
-  return platforms.filter(platform => platform.url && platform.url.trim() !== '')
-})
+  console.log('📁 File selected:', file.name, file.type, file.size)
 
-// ✅ NEW: African countries list
-const africanCountries = computed(() => profileStore.getAfricanCountries())
+  // Validate image file
+  if (!file.type.startsWith('image/')) {
+    alert('❌ Please select an image file (JPG, PNG, GIF, etc.)')
+    resetFileInput()
+    return
+  }
+  
+  // Validate file size (5MB limit)
+  if (file.size > 5 * 1024 * 1024) {
+    alert('❌ Image size should be less than 5MB')
+    resetFileInput()
+    return
+  }
 
-// ✅ NEW: Target markets
-const targetMarkets = computed(() => profileStore.getTargetMarkets())
+  try {
+    // Create a promise for file reading
+    const imageDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      
+      reader.onload = (e) => {
+        console.log('✅ Image loaded successfully')
+        resolve(e.target?.result as string)
+      }
+      
+      reader.onerror = () => {
+        console.error('❌ Error reading file')
+        reject(new Error('Failed to read image file'))
+      }
+      
+      reader.readAsDataURL(file)
+    })
 
-// ✅ NEW: Market label helper
-const marketLabel = (market: 'africa' | 'china' | 'india' | 'russia') => profileStore.getMarketLabel(market)
+    // Update profile image
+    profile.value.image = imageDataUrl
+    console.log('✅ Profile image updated')
+    
+    // Reset the file input to allow selecting the same file again
+    resetFileInput()
+    
+  } catch (error) {
+    console.error('❌ Error processing image:', error)
+    alert('❌ Error processing image. Please try again.')
+    resetFileInput()
+  }
+}
 
-// Load saved profile
+// ✅ NEW: REMOVE PROFILE IMAGE
+const removeProfileImage = () => {
+  if (confirm('Are you sure you want to remove your profile image?')) {
+    profile.value.image = ''
+    console.log('✅ Profile image removed')
+  }
+}
+
+// ✅ NEW: RESET FILE INPUT
+const resetFileInput = () => {
+  if (imageInput.value) {
+    imageInput.value.value = ''
+  }
+}
+
+// ✅ FIXED: LOAD SAVED PROFILE WITH BETTER IMAGE HANDLING
 onMounted(async () => {
+  console.log('🚀 Initializing profile...')
   await profileStore.initialize()
+  
   if (profileStore.currentProfile) {
     const saved = profileStore.currentProfile
+    console.log('📥 Loading saved profile:', saved)
+    
     profile.value = { 
       ...profile.value, 
       ...saved,
+      // Ensure image is properly handled
+      image: saved.image || '',
       // Convert flyers to the format we need
       flyers: (saved.flyers || []).map((f: any) => ({
         name: f.name,
@@ -599,7 +673,7 @@ onMounted(async () => {
         facebook: '',
         whatsapp: '',
         youtube: '',
-        wechat: '', // ✅ REPLACED TIKTOK WITH WECHAT
+        wechat: '',
         github: ''
       },
       // Ensure location exists
@@ -613,37 +687,15 @@ onMounted(async () => {
       // Ensure target markets exist
       targetMarkets: saved.targetMarkets || ['africa']
     }
+    
+    console.log('✅ Profile loaded successfully')
+    console.log('🖼️ Profile image status:', profile.value.image ? 'Has image' : 'No image')
+    
     generateQRCode()
   }
 })
 
-const triggerImageUpload = () => {
-  imageInput.value?.click()
-}
-
-const handleImageUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    // Validate image file
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file (JPG, PNG, etc.)')
-      return
-    }
-    
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Image size should be less than 5MB')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      profile.value.image = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
+// Rest of your methods remain the same...
 const triggerFlyerUpload = () => {
   flyerInput.value?.click()
 }
@@ -656,13 +708,13 @@ const handleFlyerUpload = (event: Event) => {
     // Validate file type
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
-      alert(`File type not supported: ${file.name}. Please use PDF, JPG, or PNG files.`)
+      alert(`❌ File type not supported: ${file.name}. Please use PDF, JPG, or PNG files.`)
       return
     }
 
     // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
-      alert(`File too large: ${file.name}. Maximum size is 10MB.`)
+      alert(`❌ File too large: ${file.name}. Maximum size is 10MB.`)
       return
     }
 
@@ -700,20 +752,20 @@ const formatFileSize = (bytes: number) => {
 
 const saveProfile = async () => {
   if (!isFormValid.value) {
-    alert('Please fill in all required fields (marked with *)')
+    alert('❌ Please fill in all required fields (marked with *)')
     return
   }
 
   isLoading.value = true
 
   try {
+    console.log('💾 Saving profile with image:', profile.value.image ? 'Yes' : 'No')
     await profileStore.saveProfile(profile.value)
     await generateQRCode()
     
-    // Show success message
     alert('✅ Profile saved successfully! Your QR code is ready.')
   } catch (error) {
-    console.error('Error saving profile:', error)
+    console.error('❌ Error saving profile:', error)
     alert('❌ Error saving profile. Please try again.')
   } finally {
     isLoading.value = false
@@ -736,13 +788,46 @@ const generateQRCode = async () => {
       socialMedia: profile.value.socialMedia,
       location: profile.value.location,
       targetMarkets: profile.value.targetMarkets
+      // Note: We don't include the image in QR code to keep it small
     }
     
     qrCode.value = await qrEngine.generateQR(JSON.stringify(qrData))
   } catch (error) {
-    console.error('Error generating QR code:', error)
+    console.error('❌ Error generating QR code:', error)
     // Fallback to simple QR code
     qrCode.value = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(profile.value.name + ' - ' + profile.value.company)}`
   }
 }
+
+// Your computed properties remain the same...
+const isFormValid = computed(() => {
+  return profile.value.name && 
+         profile.value.position && 
+         profile.value.company && 
+         profile.value.category && 
+         profile.value.phone && 
+         profile.value.email
+})
+
+const hasSocialMedia = computed(() => {
+  return Object.values(profile.value.socialMedia).some(url => url && url.trim() !== '')
+})
+
+const activeSocialMedia = computed(() => {
+  const platforms = [
+    { name: 'LinkedIn', url: profile.value.socialMedia.linkedin, icon: 'logos:linkedin-icon', color: '#0077b5' },
+    { name: 'X', url: profile.value.socialMedia.twitter, icon: 'logos:x', color: '#000000' },
+    { name: 'Instagram', url: profile.value.socialMedia.instagram, icon: 'logos:instagram-icon', color: '#e4405f' },
+    { name: 'Facebook', url: profile.value.socialMedia.facebook, icon: 'logos:facebook', color: '#1877f2' },
+    { name: 'WhatsApp', url: profile.value.socialMedia.whatsapp, icon: 'logos:whatsapp-icon', color: '#25d366' },
+    { name: 'YouTube', url: profile.value.socialMedia.youtube, icon: 'logos:youtube-icon', color: '#ff0000' },
+    { name: 'WeChat', url: profile.value.socialMedia.wechat, icon: 'logos:wechat', color: '#07C160' },
+    { name: 'GitHub', url: profile.value.socialMedia.github, icon: 'logos:github-icon', color: '#000000' }
+  ]
+  return platforms.filter(platform => platform.url && platform.url.trim() !== '')
+})
+
+const africanCountries = computed(() => profileStore.getAfricanCountries())
+const targetMarkets = computed(() => profileStore.getTargetMarkets())
+const marketLabel = (market: 'africa' | 'china' | 'india' | 'russia') => profileStore.getMarketLabel(market)
 </script>

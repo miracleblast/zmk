@@ -355,7 +355,34 @@
                 </a>
               </div>
             </div>
+<!-- In contact card, add chat button -->
+<div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+  <!-- Existing call/email buttons... -->
+  
+  <!-- Chat Button -->
+  <button 
+    v-if="isPremium"
+    @click.stop="openChat(contact)"
+    class="p-2 text-green-500 hover:bg-green-500 hover:text-white rounded-full transition-colors"
+    title="Chat"
+  >
+    <Icon icon="material-symbols:chat" class="text-lg" />
+  </button>
+</div>
 
+<!-- Chat Modal -->
+<div 
+  v-if="activeChatContact"
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+  @click="activeChatContact = null"
+>
+  <div 
+    class="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl h-96"
+    @click.stop
+  >
+    <ChatInterface :contact="activeChatContact" />
+  </div>
+</div>
             <!-- Action Buttons -->
             <div class="flex space-x-3 pt-4">
               <button 
@@ -393,10 +420,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useContactsStore } from '../stores/contacts'
 import { StorageEngine } from '../engines/StorageEngine'
 import { ContactEngine } from '../engines/ContactEngine'
+import { ChatEngine } from '../engines/ChatEngine'
 
 const contactsStore = useContactsStore()
 const storageEngine = new StorageEngine()
 const contactEngine = new ContactEngine()
+
 
 const searchQuery = ref('')
 const activeCategory = ref('all')
