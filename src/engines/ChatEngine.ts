@@ -9,6 +9,11 @@ export class ChatEngine {
     this.storage = new StorageEngine()
   }
 
+  // ✅ ADD MISSING saveConversation METHOD
+  async saveConversation(conversation: ChatConversation): Promise<void> {
+    await this.storage.saveConversation(conversation)
+  }
+
   // Send message to contact
   async sendMessage(contactId: string, content: string, type: 'text' | 'image' | 'file' = 'text'): Promise<string> {
     const message: ChatMessage = {
@@ -59,23 +64,8 @@ export class ChatEngine {
     await this.storage.markMessagesAsRead(contactId)
   }
 
-  // Encrypt message content (premium feature)
-  private encryptMessage(content: string): string {
-    const key = 'zoomka-chat-key'
-    return btoa(
-      content.split('').map((char, i) => 
-        char.charCodeAt(0) ^ key.charCodeAt(i % key.length)
-      ).join(',')
-    )
-  }
-
-  private decryptMessage(encryptedContent: string): string {
-    const key = 'zoomka-chat-key'
-    const bytes = atob(encryptedContent).split(',').map(Number)
-    return bytes.map((byte, i) => 
-      String.fromCharCode(byte ^ key.charCodeAt(i % key.length))
-    ).join('')
-  }
+  // ✅ REMOVED: Unused encryptMessage and decryptMessage methods
+  // These were causing the "declared but never read" warnings
 }
 
 // Export interfaces for use in other files

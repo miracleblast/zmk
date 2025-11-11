@@ -178,20 +178,23 @@ export class ContactEngine {
 
   // Parse QR data with enhanced logic
 private parseQRData(data: string): ScannedContact {
-  // JSON format - IMPROVED PARSING WITH IMAGE SUPPORT
+  // JSON format - ENHANCED WITH PROFILE PICTURE SUPPORT
   if (data.startsWith('{') && data.endsWith('}')) {
     try {
       const jsonData = JSON.parse(data)
       console.log('📱 Parsing JSON QR data:', jsonData)
       
-      // ✅ ENHANCED IMAGE HANDLING
+      // ✅ ENHANCED PROFILE PICTURE HANDLING
       let profileImage = ''
-      if (jsonData.image || jsonData.photo || jsonData.avatar) {
-        profileImage = jsonData.image || jsonData.photo || jsonData.avatar
-        console.log('🖼️ Found profile image in QR data')
+      if (jsonData.image || jsonData.photo || jsonData.avatar || jsonData.profilePicture) {
+        profileImage = jsonData.image || jsonData.photo || jsonData.avatar || jsonData.profilePicture
+        console.log('🖼️ Found profile image in QR data:', profileImage.substring(0, 50) + '...')
       }
       
-      // ✅ CREATE CLEAN, SERIALIZABLE OBJECT WITH IMAGE
+      // ✅ ENHANCED TAGS BASED ON BUSINESS CATEGORY
+      const businessTags = this.generateBusinessTags(jsonData)
+      
+      // ✅ CREATE CLEAN CONTACT WITH PROFILE PICTURE
       const contact: ScannedContact = {
         id: Date.now().toString(),
         name: jsonData.name || jsonData.fullName || 'Unknown Contact',
@@ -201,18 +204,20 @@ private parseQRData(data: string): ScannedContact {
         phone: jsonData.phone || jsonData.tel || jsonData.mobile || '',
         website: jsonData.website || jsonData.url || jsonData.web || '',
         category: jsonData.category || jsonData.industry || 'General',
-        image: profileImage, // ✅ PROPERLY SET IMAGE
+        image: profileImage, // ✅ PROFILE PICTURE INCLUDED
         rawData: data,
         scannedAt: new Date(),
         notes: jsonData.notes || jsonData.description || jsonData.bio || '',
-        tags: ['qr-scanned', 'json-format', 'enhanced'],
-        // ✅ ENSURE SOCIAL MEDIA IS CLEAN
+        tags: businessTags, // ✅ MEANINGFUL BUSINESS TAGS
         socialMedia: this.cleanSocialMedia(
           jsonData.socialMedia || jsonData.socials || this.extractSocialMediaFromJSON(jsonData)
-        )
+        ),
+        location: this.extractLocationInfo(data),
+        targetMarkets: this.detectTargetMarkets(data)
       };
       
       console.log('✅ Contact created with image:', contact.image ? 'Yes' : 'No')
+      console.log('🏷️ Business tags:', businessTags)
       return contact;
     } catch (error) {
       console.error('JSON parsing failed:', error)
@@ -233,6 +238,59 @@ private parseQRData(data: string): ScannedContact {
     // Fallback - plain text
     return this.parseTextData(data)
   }
+
+private generateBusinessTags(jsonData: any): string[] {
+  const tags = ['business-contact']
+  
+  // Remove generic tags and add meaningful ones
+  if (jsonData.category) {
+    const categoryTag = jsonData.category.toLowerCase().replace(/\s+/g, '-')
+    if (categoryTag !== 'general') {
+      tags.push(categoryTag)
+    }
+  }
+  
+  // Add industry-specific tags
+  if (jsonData.industry) {
+    tags.push(jsonData.industry.toLowerCase().replace(/\s+/g, '-'))
+  }
+  
+  // Add business role tags
+  if (jsonData.position) {
+    const position = jsonData.position.toLowerCase()
+    if (position.includes('ceo') || position.includes('founder') || position.includes('owner')) {
+      tags.push('executive')
+    }
+    if (position.includes('manager') || position.includes('director') || position.includes('head')) {
+      tags.push('management')
+    }
+    if (position.includes('sales') || position.includes('business development')) {
+      tags.push('sales')
+    }
+    if (position.includes('tech') || position.includes('developer') || position.includes('engineer')) {
+      tags.push('technology')
+    }
+  }
+  
+  // Add location-based tags
+  if (jsonData.location) {
+    tags.push('has-location')
+  }
+  
+  // Add social media presence tags
+  if (jsonData.socialMedia) {
+    const socialCount = Object.keys(jsonData.socialMedia).filter(key => 
+      jsonData.socialMedia[key] && jsonData.socialMedia[key] !== ''
+    ).length
+    if (socialCount > 0) {
+      tags.push('social-media')
+    }
+  }
+  
+  return [...new Set(tags)] // Remove duplicates
+}
+
+
 // ✅ ADD CLEAN SOCIAL MEDIA HELPER
 private cleanSocialMedia(socialMedia: any): EnhancedSocialMedia | undefined {
   if (!socialMedia) return undefined;

@@ -243,196 +243,215 @@
       </div>
     </div>
 
-    <!-- Enhanced Contact Detail Modal -->
-    <div 
-      v-if="selectedContact"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      @click="selectedContact = null"
-    >
-      <div 
-        class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        @click.stop
-      >
-        <div class="p-6">
-          <!-- Header -->
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-cal text-gray-800 dark:text-white">Contact Details</h3>
-            <button 
-              @click="selectedContact = null"
-              class="text-gray-500 hover:text-gray-700"
+ <!-- Enhanced Contact Detail Modal with ALL information -->
+<div 
+  v-if="selectedContact"
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+  @click="selectedContact = null"
+>
+  <div 
+    class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+    @click.stop
+  >
+    <div class="p-6">
+      <!-- Header with Profile Picture -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center space-x-4">
+          <!-- Large Profile Picture -->
+          <div 
+            class="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl overflow-hidden bg-zoom-500"
+          >
+            <img 
+              v-if="selectedContact.image && selectedContact.image !== ''"
+              :src="selectedContact.image"
+              class="w-full h-full object-cover"
+              alt="Profile"
+              @error="selectedContact.image = ''"
             >
-              <Icon icon="material-symbols:close" class="text-2xl" />
-            </button>
+            <Icon v-else :icon="getCategoryIcon(selectedContact.category)" class="text-3xl" />
           </div>
+          <div>
+            <h3 class="text-xl font-cal text-gray-800 dark:text-white">{{ selectedContact.name }}</h3>
+            <p class="text-zoom-500">{{ selectedContact.position }}</p>
+            <p class="text-gray-600 dark:text-gray-300 text-sm">{{ selectedContact.company }}</p>
+          </div>
+        </div>
+        <button 
+          @click="selectedContact = null"
+          class="text-gray-500 hover:text-gray-700"
+        >
+          <Icon icon="material-symbols:close" class="text-2xl" />
+        </button>
+      </div>
 
-          <!-- Contact Info -->
-          <div class="space-y-6">
-            <!-- Profile Header -->
-            <div class="text-center">
-              <!-- Profile Picture in Modal -->
-              <div 
-                class="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-3 overflow-hidden"
-                :class="selectedContact.image ? 'bg-transparent' : 'bg-zoom-500'"
-              >
-                <img 
-                  v-if="selectedContact.image && selectedContact.image !== ''"
-                  :src="selectedContact.image"
-                  class="w-full h-full object-cover"
-                  alt="Profile"
-                >
-                <Icon v-else :icon="getCategoryIcon(selectedContact.category)" />
-              </div>
-              <h4 class="text-lg font-semibold text-gray-800 dark:text-white font-poppins">
-                {{ contactEngine.generateDisplayName(selectedContact) }}
-              </h4>
-              <p class="text-zoom-500 font-poppins">{{ selectedContact.position }}</p>
-              <p class="text-gray-600 dark:text-gray-300 font-poppins">{{ selectedContact.company }}</p>
-              
-              <!-- Contact Score -->
-              <div class="mt-2">
-                <div class="flex items-center justify-center space-x-2 text-sm text-gray-500">
-                  <span>Contact Score:</span>
-                  <span class="font-semibold text-zoom-500">
-                    {{ contactEngine.calculateContactScore(selectedContact) }}%
-                  </span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                  <div 
-                    class="bg-zoom-500 h-2 rounded-full transition-all duration-500"
-                    :style="{ width: `${contactEngine.calculateContactScore(selectedContact)}%` }"
-                  ></div>
-                </div>
-              </div>
+      <!-- Contact Info Sections -->
+      <div class="space-y-4">
+        
+        <!-- Contact Methods -->
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+          <h4 class="font-semibold text-gray-800 dark:text-white mb-3 flex items-center space-x-2">
+            <Icon icon="material-symbols:contact-page" class="text-zoom-500" />
+            <span>Contact Information</span>
+          </h4>
+          <div class="space-y-2">
+            <div v-if="selectedContact.phone" class="flex justify-between items-center">
+              <span class="text-gray-600 dark:text-gray-300">Phone:</span>
+              <a :href="`tel:${selectedContact.phone}`" class="text-zoom-500 hover:text-zoom-600 font-semibold">
+                {{ selectedContact.phone }}
+              </a>
             </div>
-
-            <!-- Social Media Links -->
-            <div v-if="selectedContact.socialMedia && hasSocialMedia(selectedContact.socialMedia)" class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-              <h5 class="font-semibold text-gray-800 dark:text-white mb-3 flex items-center space-x-2">
-                <Icon icon="material-symbols:share" class="text-zoom-500" />
-                <span>Social Media</span>
-              </h5>
-              <div class="flex justify-center space-x-4">
-                <a 
-                  v-for="platform in getSocialMediaPlatforms(selectedContact.socialMedia)"
-                  :key="platform.name"
-                  :href="platform.url"
-                  target="_blank"
-                  class="flex flex-col items-center space-y-1 hover:scale-110 transition-transform"
-                  :title="platform.name"
-                >
-                  <Icon :icon="platform.icon" class="text-2xl" :style="{ color: platform.color }" />
-                  <span class="text-xs text-gray-600 dark:text-gray-300">{{ platform.name }}</span>
-                </a>
-              </div>
+            <div v-if="selectedContact.email" class="flex justify-between items-center">
+              <span class="text-gray-600 dark:text-gray-300">Email:</span>
+              <a :href="`mailto:${selectedContact.email}`" class="text-zoom-500 hover:text-zoom-600 font-semibold">
+                {{ selectedContact.email }}
+              </a>
             </div>
-
-            <!-- Contact Information -->
-            <div class="space-y-3">
-              <div v-if="selectedContact.phone" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div class="flex items-center space-x-3">
-                  <Icon icon="material-symbols:call" class="text-zoom-500 text-xl" />
-                  <span class="font-poppins">Phone</span>
-                </div>
-                <a :href="`tel:${selectedContact.phone}`" class="text-zoom-500 hover:text-zoom-600 font-poppins">
-                  {{ selectedContact.phone }}
-                </a>
-              </div>
-
-              <div v-if="selectedContact.email" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div class="flex items-center space-x-3">
-                  <Icon icon="material-symbols:email" class="text-zoom-500 text-xl" />
-                  <span class="font-poppins">Email</span>
-                </div>
-                <a :href="`mailto:${selectedContact.email}`" class="text-zoom-500 hover:text-zoom-600 font-poppins">
-                  {{ selectedContact.email }}
-                </a>
-              </div>
-
-              <div v-if="selectedContact.website" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div class="flex items-center space-x-3">
-                  <Icon icon="material-symbols:language" class="text-zoom-500 text-xl" />
-                  <span class="font-poppins">Website</span>
-                </div>
-                <a :href="selectedContact.website" target="_blank" class="text-zoom-500 hover:text-zoom-600 font-poppins">
-                  Visit Site
-                </a>
-              </div>
-
-              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div class="flex items-center space-x-3">
-                  <Icon icon="material-symbols:category" class="text-zoom-500 text-xl" />
-                  <span class="font-poppins">Category</span>
-                </div>
-                <span class="text-zoom-500 font-poppins">{{ selectedContact.category }}</span>
-              </div>
-
-              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div class="flex items-center space-x-3">
-                  <Icon icon="material-symbols:schedule" class="text-zoom-500 text-xl" />
-                  <span class="font-poppins">Scanned</span>
-                </div>
-                <span class="text-gray-600 dark:text-gray-300 font-poppins">
-                  {{ formatDate(selectedContact.scannedAt) }}
-                </span>
-              </div>
+            <div v-if="selectedContact.website" class="flex justify-between items-center">
+              <span class="text-gray-600 dark:text-gray-300">Website:</span>
+              <a :href="selectedContact.website" target="_blank" class="text-zoom-500 hover:text-zoom-600 font-semibold">
+                Visit Website
+              </a>
             </div>
+          </div>
+        </div>
 
-            <!-- Notes -->
-            <div v-if="selectedContact.notes" class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
-              <h5 class="font-semibold text-amber-800 dark:text-amber-200 mb-2 flex items-center space-x-2">
-                <Icon icon="material-symbols:notes" class="text-amber-500" />
-                <span>Notes</span>
-              </h5>
-              <p class="text-amber-700 dark:text-amber-300 text-sm">{{ selectedContact.notes }}</p>
+        <!-- Location Information -->
+        <div v-if="selectedContact.location && (selectedContact.location.country || selectedContact.location.city)" class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+          <h4 class="font-semibold text-green-800 dark:text-green-200 mb-3 flex items-center space-x-2">
+            <Icon icon="material-symbols:location-on" class="text-green-500" />
+            <span>Location</span>
+          </h4>
+          <div class="space-y-2">
+            <div v-if="selectedContact.location.country" class="flex justify-between">
+              <span class="text-green-700 dark:text-green-300">Country:</span>
+              <span class="font-semibold">{{ selectedContact.location.country }}</span>
             </div>
+            <div v-if="selectedContact.location.city" class="flex justify-between">
+              <span class="text-green-700 dark:text-green-300">City:</span>
+              <span class="font-semibold">{{ selectedContact.location.city }}</span>
+            </div>
+            <div v-if="selectedContact.location.address" class="flex justify-between">
+              <span class="text-green-700 dark:text-green-300">Address:</span>
+              <span class="font-semibold text-right">{{ selectedContact.location.address }}</span>
+            </div>
+            <div v-if="selectedContact.location.zipCode" class="flex justify-between">
+              <span class="text-green-700 dark:text-green-300">ZIP Code:</span>
+              <span class="font-semibold">{{ selectedContact.location.zipCode }}</span>
+            </div>
+          </div>
+        </div>
 
-            <!-- Website Preview -->
-            <div v-if="selectedContact.website" class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-              <h5 class="font-semibold text-gray-800 dark:text-white mb-3 flex items-center space-x-2">
-                <Icon icon="material-symbols:visibility" class="text-zoom-500" />
-                <span>Website Preview</span>
-              </h5>
-              <div class="aspect-video bg-white rounded-lg border border-gray-200 flex items-center justify-center">
-                <a 
-                  :href="selectedContact.website" 
-                  target="_blank"
-                  class="text-center text-zoom-500 hover:text-zoom-600 transition-colors"
-                >
-                  <Icon icon="material-symbols:open-in-new" class="text-3xl mb-2" />
-                  <p class="text-sm font-poppins">Open Website</p>
-                  <p class="text-xs text-gray-500 truncate max-w-[200px]">{{ selectedContact.website }}</p>
-                </a>
+        <!-- Target Markets -->
+        <div v-if="selectedContact.targetMarkets && selectedContact.targetMarkets.length > 0" class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
+          <h4 class="font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center space-x-2">
+            <Icon icon="material-symbols:public" class="text-purple-500" />
+            <span>Target Markets</span>
+          </h4>
+          <div class="flex flex-wrap gap-2">
+            <span 
+              v-for="market in selectedContact.targetMarkets"
+              :key="market"
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200"
+            >
+              <Icon :icon="getMarketIcon(market)" class="text-sm mr-1" />
+              {{ market.charAt(0).toUpperCase() + market.slice(1) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Social Media -->
+        <div v-if="selectedContact.socialMedia && hasSocialMedia(selectedContact.socialMedia)" class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+          <h4 class="font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center space-x-2">
+            <Icon icon="material-symbols:share" class="text-blue-500" />
+            <span>Social Media</span>
+          </h4>
+          <div class="flex flex-wrap gap-3">
+            <a 
+              v-for="platform in getSocialMediaPlatforms(selectedContact.socialMedia)"
+              :key="platform.name"
+              :href="platform.url"
+              target="_blank"
+              class="flex flex-col items-center space-y-1 hover:scale-110 transition-transform"
+              :title="platform.name"
+            >
+              <Icon :icon="platform.icon" class="text-2xl" :style="{ color: platform.color }" />
+              <span class="text-xs text-blue-700 dark:text-blue-300">{{ platform.name }}</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Digital Flyers -->
+        <div v-if="selectedContact.flyers && selectedContact.flyers.length > 0" class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
+          <h4 class="font-semibold text-amber-800 dark:text-amber-200 mb-3 flex items-center space-x-2">
+            <Icon icon="material-symbols:description" class="text-amber-500" />
+            <span>Digital Flyers ({{ selectedContact.flyers.length }})</span>
+          </h4>
+          <div class="space-y-2">
+            <div 
+              v-for="(flyer, index) in selectedContact.flyers" 
+              :key="index"
+              class="flex items-center justify-between p-3 bg-white dark:bg-gray-600 rounded-lg"
+            >
+              <div class="flex items-center space-x-3">
+                <Icon 
+                  :icon="getFileIcon(flyer.name)" 
+                  class="text-amber-500 text-xl" 
+                />
+                <div>
+                  <span class="text-sm font-semibold block">{{ flyer.name }}</span>
+                  <span class="text-xs text-gray-500">{{ formatFileSize(flyer.size) }}</span>
+                </div>
               </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex space-x-3 pt-4">
               <button 
-                @click="deleteContact(selectedContact.id)"
-                class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                @click="downloadFlyer(flyer)"
+                class="text-amber-500 hover:text-amber-700 p-1"
+                title="Download Flyer"
               >
-                <Icon icon="material-symbols:delete" class="text-xl" />
-                <span>Delete</span>
-              </button>
-              <button 
-                @click="shareContact(selectedContact)"
-                class="flex-1 btn-primary flex items-center justify-center space-x-2"
-              >
-                <Icon icon="material-symbols:share" class="text-xl" />
-                <span>Share</span>
-              </button>
-              <button 
-                @click="exportContact(selectedContact)"
-                class="flex-1 btn-secondary flex items-center justify-center space-x-2"
-              >
-                <Icon icon="material-symbols:download" class="text-xl" />
-                <span>Export</span>
+                <Icon icon="material-symbols:download" />
               </button>
             </div>
           </div>
         </div>
+
+        <!-- Business Tags -->
+        <div v-if="selectedContact.tags && selectedContact.tags.length > 0" class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+          <h4 class="font-semibold text-gray-800 dark:text-white mb-3 flex items-center space-x-2">
+            <Icon icon="material-symbols:label" class="text-gray-500" />
+            <span>Business Tags</span>
+          </h4>
+          <div class="flex flex-wrap gap-2">
+            <span 
+              v-for="tag in selectedContact.tags"
+              :key="tag"
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200"
+            >
+              {{ tag.replace(/-/g, ' ').replace('qr scanned', 'QR Code') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex space-x-3 pt-4">
+          <button 
+            @click="deleteContact(selectedContact.id)"
+            class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl transition-colors flex items-center justify-center space-x-2"
+          >
+            <Icon icon="material-symbols:delete" class="text-xl" />
+            <span>Delete</span>
+          </button>
+          <button 
+            @click="startChat(selectedContact)"
+            class="flex-1 btn-primary flex items-center justify-center space-x-2 py-3"
+          >
+            <Icon icon="material-symbols:chat" class="text-xl" />
+            <span>Start Chat</span>
+          </button>
+        </div>
       </div>
     </div>
+  </div>
+</div>
+
 
     <!-- Chat Modal -->
     <div 
@@ -472,64 +491,75 @@ const selectedContact = ref<any>(null)
 const activeChatContact = ref<any>(null)
 const categories = ref<any[]>([])
 
-// Alibaba-style categories
+// ✅ ENHANCED ALIBABA-STYLE CATEGORIES WITH SUB-CATEGORIES
 const alibabaCategories = [
   {
     id: 'technology',
     name: 'Technology',
     icon: 'material-symbols:code',
+    color: 'bg-blue-500',
     subcategories: [
-      { id: 'software', name: 'Software' },
-      { id: 'hardware', name: 'Hardware' },
-      { id: 'ai', name: 'AI & ML' },
-      { id: 'cybersecurity', name: 'Cybersecurity' }
-    ]
-  },
-  {
-    id: 'import-export',
-    name: 'Import/Export',
-    icon: 'material-symbols:airplane-ticket',
-    subcategories: [
-      { id: 'electronics', name: 'Electronics' },
-      { id: 'textiles', name: 'Textiles' },
-      { id: 'agriculture', name: 'Agriculture' },
-      { id: 'automotive', name: 'Automotive' }
+      { id: 'software', name: 'Software Development' },
+      { id: 'hardware', name: 'Hardware & Electronics' },
+      { id: 'ai-ml', name: 'AI & Machine Learning' },
+      { id: 'cybersecurity', name: 'Cybersecurity' },
+      { id: 'cloud', name: 'Cloud Services' }
     ]
   },
   {
     id: 'manufacturing',
     name: 'Manufacturing',
     icon: 'material-symbols:factory',
+    color: 'bg-green-500',
     subcategories: [
-      { id: 'machinery', name: 'Machinery' },
-      { id: 'textiles', name: 'Textiles' },
-      { id: 'food', name: 'Food Processing' },
-      { id: 'chemicals', name: 'Chemicals' }
+      { id: 'electronics-mfg', name: 'Electronics Manufacturing' },
+      { id: 'textiles', name: 'Textiles & Apparel' },
+      { id: 'automotive', name: 'Automotive Parts' },
+      { id: 'machinery', name: 'Industrial Machinery' },
+      { id: 'food-processing', name: 'Food Processing' }
+    ]
+  },
+  {
+    id: 'import-export',
+    name: 'Import/Export',
+    icon: 'material-symbols:airplane-ticket',
+    color: 'bg-purple-500',
+    subcategories: [
+      { id: 'electronics-trade', name: 'Electronics Trade' },
+      { id: 'commodities', name: 'Commodities' },
+      { id: 'raw-materials', name: 'Raw Materials' },
+      { id: 'consumer-goods', name: 'Consumer Goods' },
+      { id: 'agricultural', name: 'Agricultural Products' }
     ]
   },
   {
     id: 'services',
     name: 'Services',
     icon: 'material-symbols:engineering',
+    color: 'bg-orange-500',
     subcategories: [
-      { id: 'consulting', name: 'Consulting' },
-      { id: 'logistics', name: 'Logistics' },
-      { id: 'finance', name: 'Financial' },
-      { id: 'healthcare', name: 'Healthcare' }
+      { id: 'consulting', name: 'Business Consulting' },
+      { id: 'logistics', name: 'Logistics & Shipping' },
+      { id: 'finance', name: 'Financial Services' },
+      { id: 'it-services', name: 'IT Services' },
+      { id: 'professional', name: 'Professional Services' }
     ]
   },
   {
     id: 'retail',
-    name: 'Retail',
+    name: 'Retail & Commerce',
     icon: 'material-symbols:storefront',
+    color: 'bg-red-500',
     subcategories: [
       { id: 'ecommerce', name: 'E-commerce' },
       { id: 'wholesale', name: 'Wholesale' },
-      { id: 'fashion', name: 'Fashion' },
-      { id: 'electronics', name: 'Electronics' }
+      { id: 'retail-chains', name: 'Retail Chains' },
+      { id: 'fashion', name: 'Fashion & Apparel' },
+      { id: 'consumer-electronics', name: 'Consumer Electronics' }
     ]
   }
 ]
+
 
 onMounted(async () => {
   categories.value = await storageEngine.getCategories()
@@ -563,6 +593,22 @@ const filteredContacts = computed(() => {
 
   return contacts.sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())
 })
+// Add these methods to your ContactsView.vue script section
+
+const getFileIcon = (filename: string) => {
+  if (filename.toLowerCase().endsWith('.pdf')) return 'material-symbols:description'
+  if (filename.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'material-symbols:image'
+  if (filename.toLowerCase().endsWith('.doc') || filename.toLowerCase().endsWith('.docx')) return 'material-symbols:description'
+  return 'material-symbols:insert-drive-file'
+}
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 
 const getContactCount = (categoryId: string) => {
   if (categoryId === 'all') return contactsStore.contacts.length
@@ -700,6 +746,14 @@ const closeChat = () => {
 const setActiveCategory = (categoryId: string) => {
   activeCategory.value = categoryId
   searchQuery.value = ''
+  // You can add logic here to show subcategories
+  console.log('Selected category:', categoryId)
+}
+
+// Add a method to get subcategories for display
+const getSubcategories = (categoryId: string) => {
+  const category = alibabaCategories.find(cat => cat.id === categoryId)
+  return category?.subcategories || []
 }
 
 const handleSearch = () => {
@@ -710,8 +764,30 @@ const clearSearch = () => {
   searchQuery.value = ''
 }
 
+// ✅ ENHANCED CONTACT CARD WITH PROFILE PICTURE AND FLYERS
 const viewContact = (contact: any) => {
   selectedContact.value = contact
+  console.log('👤 Viewing contact with image:', contact.image ? 'Yes' : 'No')
+  console.log('📁 Contact flyers:', contact.flyers?.length || 0)
+}
+// ✅ NEW: DOWNLOAD FLYER METHOD
+const downloadFlyer = (flyer: any) => {
+  if (flyer.data && flyer.data.startsWith('data:')) {
+    const link = document.createElement('a')
+    link.href = flyer.data
+    link.download = flyer.name
+    link.click()
+  } else {
+    alert('Flyer data not available for download')
+  }
+}
+
+// ✅ NEW: START CHAT WITH CONTACT
+const startChat = (contact: any) => {
+  // Use chat store to create conversation
+  const contactId = chatStore.generateContactId(JSON.stringify(contact))
+  activeChatContact.value = { ...contact, id: contactId }
+  selectedContact.value = null // Close contact modal
 }
 
 const callContact = (contact: any) => {
@@ -734,31 +810,17 @@ const deleteContact = async (contactId: string) => {
   }
 }
 
-const shareContact = (contact: any) => {
-  const shareText = `Contact: ${contact.name} - ${contact.position} at ${contact.company}`
-  if (navigator.share) {
-    navigator.share({
-      title: 'Business Contact',
-      text: shareText,
-      url: window.location.href
-    })
-  } else {
-    // Fallback: copy to clipboard
-    navigator.clipboard.writeText(shareText)
-    alert('Contact info copied to clipboard!')
+const getMarketIcon = (market: string) => {
+  const icons = {
+    africa: 'emojione:flag-for-south-africa',
+    china: 'emojione:flag-for-china',
+    india: 'emojione:flag-for-india',
+    russia: 'emojione:flag-for-russia'
   }
+  return icons[market as keyof typeof icons] || 'material-symbols:public'
 }
 
-const exportContact = (contact: any) => {
-  const vcard = contactEngine.exportToVCard(contact)
-  const blob = new Blob([vcard], { type: 'text/vcard' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${contact.name.replace(/\s+/g, '_')}.vcf`
-  a.click()
-  URL.revokeObjectURL(url)
-}
+
 
 const formatDate = (date: Date) => {
   return new Date(date).toLocaleDateString('en-US', {

@@ -29,11 +29,64 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: 'pwa-maskable-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+        // ✅ FIXED: USE CORRECT PWA MANIFEST PROPERTIES
+        categories: ['business', 'productivity', 'utilities'],
+        screenshots: [
+          {
+            src: 'screenshots/mobile-scan.png',
+            sizes: '390x844',
+            type: 'image/png',
+            // Remove form_factor or use platform instead
+            platform: 'narrow'
+          },
+          {
+            src: 'screenshots/desktop-contacts.png', 
+            sizes: '1280x720',
+            type: 'image/png',
+            // Remove form_factor or use platform instead  
+            platform: 'wide'
           }
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,ico}']
+        globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+        // ✅ ENABLE PUSH NOTIFICATIONS
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
+      // ✅ NOTIFICATION FEATURES
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      devOptions: {
+        enabled: true,
+        type: 'module'
       }
     })
   ],
