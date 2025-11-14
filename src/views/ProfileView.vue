@@ -485,52 +485,52 @@
           </div>
 
           <!-- Digital Flyers Section -->
-<div class="pt-4 border-t border-gray-200 dark:border-gray-600">
-  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center space-x-2">
-    <Icon icon="material-symbols:description" class="text-zoom-500 text-lg" />
-    <span>Digital Flyers (PDF, PNG, JPG)</span>
-  </label>
-  <div class="space-y-2">
-    <div 
-      v-for="(flyer, index) in profile.flyers" 
-      :key="index"
-      class="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-700/50 rounded-xl"
-    >
-      <div class="flex items-center space-x-3">
-        <Icon 
-          :icon="getFileIcon(flyer.name)" 
-          class="text-zoom-500 text-xl" 
-        />
-        <div>
-          <span class="text-sm font-poppins block">{{ flyer.name }}</span>
-          <span class="text-xs text-gray-500">{{ formatFileSize(flyer.size) }}</span>
-        </div>
-      </div>
-      <button 
-        @click="removeFlyer(index)"
-        class="text-red-500 hover:text-red-700 p-1"
-      >
-        <Icon icon="material-symbols:delete" />
-      </button>
-    </div>
-    
-    <button 
-      @click="triggerFlyerUpload"
-      class="w-full py-3 border-2 border-dashed border-zoom-300 rounded-xl text-zoom-500 hover:bg-zoom-50 transition-colors flex items-center justify-center space-x-2"
-    >
-      <Icon icon="material-symbols:add" class="text-lg" />
-      <span>Add Flyer</span>
-    </button>
-    <input 
-      ref="flyerInput"
-      type="file" 
-      accept=".pdf,.jpg,.jpeg,.png" 
-      class="hidden" 
-      @change="handleFlyerUpload"
-      multiple
-    >
-  </div>
-</div>
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-600">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center space-x-2">
+              <Icon icon="material-symbols:description" class="text-zoom-500 text-lg" />
+              <span>Digital Flyers (PDF, PNG, JPG)</span>
+            </label>
+            <div class="space-y-2">
+              <div 
+                v-for="(flyer, index) in profile.flyers" 
+                :key="index"
+                class="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-700/50 rounded-xl"
+              >
+                <div class="flex items-center space-x-3">
+                  <Icon 
+                    :icon="getFileIcon(flyer.name)" 
+                    class="text-zoom-500 text-xl" 
+                  />
+                  <div>
+                    <span class="text-sm font-poppins block">{{ flyer.name }}</span>
+                    <span class="text-xs text-gray-500">{{ formatFileSize(flyer.size) }}</span>
+                  </div>
+                </div>
+                <button 
+                  @click="removeFlyer(index)"
+                  class="text-red-500 hover:text-red-700 p-1"
+                >
+                  <Icon icon="material-symbols:delete" />
+                </button>
+              </div>
+              
+              <button 
+                @click="triggerFlyerUpload"
+                class="w-full py-3 border-2 border-dashed border-zoom-300 rounded-xl text-zoom-500 hover:bg-zoom-50 transition-colors flex items-center justify-center space-x-2"
+              >
+                <Icon icon="material-symbols:add" class="text-lg" />
+                <span>Add Flyer</span>
+              </button>
+              <input 
+                ref="flyerInput"
+                type="file" 
+                accept=".pdf,.jpg,.jpeg,.png" 
+                class="hidden" 
+                @change="handleFlyerUpload"
+                multiple
+              >
+            </div>
+          </div>
         </div>
 
         <!-- Save Button -->
@@ -675,8 +675,7 @@ const profile = ref({
   email: '',
   website: '',
   image: '' as string,
-  // ✅ FIXED: USE CORRECT FLYER STRUCTURE FOR STORAGE
-  flyers: [] as Array<{ name: string; data: string; type: string; size: number }>,
+  flyers: [] as Array<{ name: string; file: File; size: number; type: string }>,
   socialMedia: {
     linkedin: '',
     twitter: '',
@@ -869,35 +868,32 @@ onMounted(async () => {
     const saved = profileStore.currentProfile
     console.log('📥 Loading saved profile:', saved)
     
-    // ✅ FIXED: PROPER FLYER HANDLING
     profile.value = { 
-      ...profile.value,
-      name: saved.name || '',
-      position: saved.position || '',
-      company: saved.company || '',
-      category: saved.category || '',
-      phone: saved.phone || '',
-      email: saved.email || '',
-      website: saved.website || '',
+      ...profile.value, 
+      ...saved,
       image: saved.image || '',
-      // Flyers are already in correct format from storage
-      flyers: saved.flyers || [],
-      socialMedia: {
-        linkedin: saved.socialMedia?.linkedin || '',
-        twitter: saved.socialMedia?.twitter || '',
-        instagram: saved.socialMedia?.instagram || '',
-        facebook: saved.socialMedia?.facebook || '',
-        whatsapp: saved.socialMedia?.whatsapp || '',
-        youtube: saved.socialMedia?.youtube || '',
-        wechat: saved.socialMedia?.wechat || '',
-        github: saved.socialMedia?.github || ''
+      flyers: (saved.flyers || []).map((f: any) => ({
+        name: f.name,
+        file: f.file,
+        size: f.size || 0,
+        type: f.type || 'application/octet-stream'
+      })),
+      socialMedia: saved.socialMedia || {
+        linkedin: '',
+        twitter: '',
+        instagram: '',
+        facebook: '',
+        whatsapp: '',
+        youtube: '',
+        wechat: '',
+        github: ''
       },
-      location: {
-        country: saved.location?.country || '',
-        city: saved.location?.city || '',
-        zipCode: saved.location?.zipCode || '',
-        address: saved.location?.address || '',
-        marketFocus: saved.location?.marketFocus || []
+      location: saved.location || {
+        country: '',
+        city: '',
+        zipCode: '',
+        address: '',
+        marketFocus: []
       },
       targetMarkets: saved.targetMarkets || ['africa']
     }
@@ -914,42 +910,29 @@ const triggerFlyerUpload = () => {
   flyerInput.value?.click()
 }
 
-const handleFlyerUpload = async (event: Event) => {
+const handleFlyerUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
   const files = Array.from(target.files || [])
   
-  for (const file of files) {
+  files.forEach(file => {
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
     if (!allowedTypes.includes(file.type)) {
       alert(`❌ File type not supported: ${file.name}. Please use PDF, JPG, or PNG files.`)
-      continue
+      return
     }
 
     if (file.size > 10 * 1024 * 1024) {
       alert(`❌ File too large: ${file.name}. Maximum size is 10MB.`)
-      continue
+      return
     }
 
-    try {
-      // ✅ CONVERT FILE TO BASE64 IMMEDIATELY
-      const data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => resolve(e.target?.result as string)
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
-
-      profile.value.flyers.push({
-        name: file.name,
-        data: data,
-        type: file.type,
-        size: file.size
-      })
-    } catch (error) {
-      console.error('❌ Error processing flyer:', error)
-      alert(`❌ Error processing file: ${file.name}`)
-    }
-  }
+    profile.value.flyers.push({
+      name: file.name,
+      file: file,
+      size: file.size,
+      type: file.type
+    })
+  })
   
   if (flyerInput.value) {
     flyerInput.value.value = ''
@@ -984,9 +967,6 @@ const saveProfile = async () => {
 
   try {
     console.log('💾 Saving profile with image:', profile.value.image ? 'Yes' : 'No')
-    console.log('📁 Flyers to save:', profile.value.flyers.length)
-    
-    // ✅ FIXED: PROFILE DATA IS ALREADY IN CORRECT FORMAT
     await profileStore.saveProfile(profile.value)
     await generateQRCode()
     

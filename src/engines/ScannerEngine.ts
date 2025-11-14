@@ -71,77 +71,68 @@ export class ScannerEngine {
 
   // REAL QR SCANNING - FIXED TO ACTUALLY WORK
   startContinuousScanning(onResult: (result: string) => void): void {
-  this.onResultCallback = onResult;
-  this.isScanning = true;
-  console.log('🔍 Starting REAL QR scanning...');
-  
-  let lastScanTime = 0;
-  const scanFrame = async () => {
-    if (!this.isScanning || !this.videoElement || !this.canvas || !this.context) {
-      return;
-    }
-
-    try {
-      // Check if video is ready
-      if (this.videoElement.videoWidth === 0 || this.videoElement.videoHeight === 0) {
-        this.animationFrameId = requestAnimationFrame(scanFrame);
+    this.onResultCallback = onResult;
+    this.isScanning = true;
+    console.log('🔍 Starting REAL QR scanning...');
+    
+    const scanFrame = async () => {
+      if (!this.isScanning || !this.videoElement || !this.canvas || !this.context) {
         return;
       }
 
-      // Set canvas size to match video
-      this.canvas.width = this.videoElement.videoWidth;
-      this.canvas.height = this.videoElement.videoHeight;
-
-      // Draw current video frame to canvas
-      this.context.drawImage(this.videoElement, 0, 0, this.canvas.width, this.canvas.height);
-
-      // Get image data for QR processing
-      const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
-
-      // ✅ IMPROVED: Add debouncing to prevent multiple rapid scans
-      const now = Date.now();
-      if (now - lastScanTime < 1000) { // Only scan once per second
-        this.animationFrameId = requestAnimationFrame(scanFrame);
-        return;
-      }
-
-      // REAL QR CODE DETECTION
-      const code = jsQR(
-        imageData.data,
-        imageData.width,
-        imageData.height,
-        {
-          inversionAttempts: 'attemptBoth', // ✅ Try both inverted and normal
+      try {
+        // Check if video is ready
+        if (this.videoElement.videoWidth === 0 || this.videoElement.videoHeight === 0) {
+          this.animationFrameId = requestAnimationFrame(scanFrame);
+          return;
         }
-      );
 
-      // If QR code found - STOP and return result
-      if (code) {
-        console.log('🎯 QR Code detected:', code.data);
-        lastScanTime = now;
-        this.isScanning = false;
-        
-        if (this.onResultCallback) {
-          this.onResultCallback(code.data);
+        // Set canvas size to match video
+        this.canvas.width = this.videoElement.videoWidth;
+        this.canvas.height = this.videoElement.videoHeight;
+
+        // Draw current video frame to canvas
+        this.context.drawImage(this.videoElement, 0, 0, this.canvas.width, this.canvas.height);
+
+        // Get image data for QR processing
+        const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
+
+        // REAL QR CODE DETECTION - ACTUALLY CALLING jsQR
+        const code = jsQR(
+          imageData.data,
+          imageData.width,
+          imageData.height,
+          {
+            inversionAttempts: 'dontInvert',
+          }
+        );
+
+        // If QR code found - STOP and return result
+        if (code) {
+          console.log('🎯 QR Code detected:', code.data);
+          this.isScanning = false;
+          
+          if (this.onResultCallback) {
+            this.onResultCallback(code.data);
+          }
+          
+          this.stopScanner();
+          return;
         }
-        
-        this.stopScanner();
-        return;
+
+      } catch (error) {
+        console.error('❌ QR scanning error:', error);
       }
 
-    } catch (error) {
-      console.error('❌ QR scanning error:', error);
-    }
+      // Continue scanning if no QR found
+      if (this.isScanning) {
+        this.animationFrameId = requestAnimationFrame(scanFrame);
+      }
+    };
 
-    // Continue scanning if no QR found
-    if (this.isScanning) {
-      this.animationFrameId = requestAnimationFrame(scanFrame);
-    }
-  };
-
-  // Start the scanning loop
-  scanFrame();
-}
+    // Start the scanning loop
+    scanFrame();
+  }
 
   // MANUAL CAPTURE - For fallback when auto doesn't work
   async manualCapture(): Promise<string | null> {

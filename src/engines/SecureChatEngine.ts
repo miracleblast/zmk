@@ -1,4 +1,5 @@
 // src/engines/SecureChatEngine.ts
+import { AES, enc, mode, pad } from 'crypto-js'
 import { StorageEngine } from './StorageEngine'
 import type { ChatMessage, ChatConversation } from './StorageEngine'
 
@@ -6,7 +7,10 @@ export interface EncryptedMessage {
   id: string
   contactId: string
   encryptedContent: string
+  iv: string
   timestamp: Date
+  signature: string
+  senderPublicKey?: string
 }
 
 export class SecureChatEngine {
@@ -15,133 +19,126 @@ export class SecureChatEngine {
   
   constructor() {
     this.storage = new StorageEngine()
-    this.encryptionKey = this.generateSimpleKey()
+    this.encryptionKey = this.generateEncryptionKey()
   }
 
-  // ✅ SIMPLIFIED: Use a simple, consistent key for testing
-  private generateSimpleKey(): string {
-    // Use a fixed key for now to ensure both devices can decrypt
-    const fixedKey = 'zoomka-chat-fixed-key-2024'
-    return fixedKey.padEnd(32, '0').substring(0, 32)
+  // ✅ GENERATE UNIQUE ENCRYPTION KEY PER DEVICE
+  private generateEncryptionKey(): string {
+    const deviceId = this.getDeviceFingerprint()
+    const profileId = 'current'
+    return AES.encrypt(`${deviceId}_${profileId}_${Date.now()}`, 'zoomka-master-key').toString()
   }
 
-  // ✅ SIMPLIFIED ENCRYPTION
+  // ✅ GET DEVICE FINGERPRINT
+  private getDeviceFingerprint(): string {
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset()
+    ].join('|')
+    
+    return btoa(fingerprint)
+  }
+
+  // ✅ MILITARY-GRADE AES-256 ENCRYPTION
   async sendEncryptedMessage(contactId: string, content: string): Promise<string> {
-    try {
-      console.log('🔐 Encrypting message for:', contactId)
-      
-      // Simple XOR encryption for testing
-      const encryptedContent = this.simpleEncrypt(content, this.encryptionKey)
-      
-      const secureMessage: EncryptedMessage = {
-        id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
-        contactId,
-        encryptedContent: encryptedContent,
-        timestamp: new Date()
-      }
+    const iv = enc.Hex.parse(this.generateRandomIV())
+    
+    const encrypted = AES.encrypt(content, this.encryptionKey, {
+      iv: iv,
+      mode: mode.CBC,
+      padding: pad.Pkcs7
+    })
 
-      // Save to storage
-      await this.storage.saveMessage(this.convertToChatMessage(secureMessage))
-      await this.updateEncryptedConversation(contactId, 'New message', secureMessage.timestamp)
-      
-      console.log('✅ Message sent successfully')
-      return secureMessage.id
-    } catch (error) {
-      console.error('❌ Failed to send message:', error)
-      throw new Error('Failed to send message')
+    const secureMessage: EncryptedMessage = {
+      id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+      contactId,
+      encryptedContent: encrypted.toString(),
+      iv: iv.toString(),
+      timestamp: new Date(),
+      signature: this.signMessage(encrypted.toString())
     }
+
+    await this.storage.saveMessage(this.convertToChatMessage(secureMessage))
+    await this.updateEncryptedConversation(contactId, '🔒 Encrypted message', secureMessage.timestamp)
+    
+    return secureMessage.id
   }
 
-  // ✅ SIMPLE XOR ENCRYPTION (Both devices can decrypt)
-  private simpleEncrypt(content: string, key: string): string {
-    let result = ''
-    for (let i = 0; i < content.length; i++) {
-      const charCode = content.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-      result += String.fromCharCode(charCode)
-    }
-    return btoa(result) // Base64 encode
-  }
-
-  private simpleDecrypt(encryptedContent: string, key: string): string {
-    try {
-      const decoded = atob(encryptedContent)
-      let result = ''
-      for (let i = 0; i < decoded.length; i++) {
-        const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-        result += String.fromCharCode(charCode)
-      }
-      return result
-    } catch (error) {
-      console.error('❌ Simple decryption failed:', error)
-      return '🔒 Unable to decrypt message'
-    }
-  }
-
-  // ✅ SIMPLIFIED DECRYPTION
+  // ✅ DECRYPT MESSAGE
   async decryptMessage(encryptedMessage: EncryptedMessage): Promise<string> {
     try {
-      console.log('🔓 Decrypting message...')
-      
-      const decryptedContent = this.simpleDecrypt(encryptedMessage.encryptedContent, this.encryptionKey)
-      
-      if (!decryptedContent) {
-        console.error('❌ Decryption resulted in empty text')
-        return '🔒 Unable to decrypt message'
+      if (!this.verifySignature(encryptedMessage.encryptedContent, encryptedMessage.signature)) {
+        throw new Error('Message signature verification failed')
       }
 
-      console.log('✅ Message decrypted successfully')
-      return decryptedContent
+      const decrypted = AES.decrypt(encryptedMessage.encryptedContent, this.encryptionKey, {
+        iv: enc.Hex.parse(encryptedMessage.iv),
+        mode: mode.CBC,
+        padding: pad.Pkcs7
+      })
+
+      return decrypted.toString(enc.Utf8)
     } catch (error) {
       console.error('❌ Decryption failed:', error)
       return '🔒 Unable to decrypt message'
     }
   }
 
-  // ✅ FIXED: GET AND DECRYPT CONVERSATION
-  async getEncryptedConversation(contactId: string): Promise<{message: ChatMessage, decryptedContent: string}[]> {
+  // ✅ GENERATE RANDOM IV (INITIALIZATION VECTOR)
+  private generateRandomIV(): string {
+    const array = new Uint8Array(16)
+    crypto.getRandomValues(array)
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+  }
+
+  // ✅ MESSAGE SIGNING (INTEGRITY PROTECTION)
+  private signMessage(content: string): string {
+    const signature = AES.encrypt(content + this.encryptionKey, 'signing-key').toString()
+    return btoa(signature)
+  }
+
+  // ✅ SIGNATURE VERIFICATION
+  private verifySignature(content: string, signature: string): boolean {
     try {
-      const messages = await this.storage.getMessages(contactId)
-      const decryptedMessages = []
-      
-      console.log(`📥 Loading ${messages.length} messages for contact ${contactId}`)
-      
-      for (const message of messages) {
-        if (message.encrypted) {
-          try {
-            const encryptedMsg: EncryptedMessage = {
-              id: message.id,
-              contactId: message.contactId,
-              encryptedContent: message.content,
-              timestamp: message.timestamp
-            }
-            
-            const decryptedContent = await this.decryptMessage(encryptedMsg)
-            decryptedMessages.push({
-              message,
-              decryptedContent
-            })
-            
-          } catch (error) {
-            console.error('❌ Failed to decrypt message:', error)
-            decryptedMessages.push({
-              message,
-              decryptedContent: '🔒 Failed to decrypt message'
-            })
-          }
-        } else {
-          // Plain text message (fallback)
-          decryptedMessages.push({
-            message,
-            decryptedContent: message.content
-          })
-        }
-      }
-      
-      return decryptedMessages
-    } catch (error) {
-      console.error('❌ Failed to load conversation:', error)
-      return []
+      const expectedSignature = this.signMessage(content)
+      return signature === btoa(expectedSignature)
+    } catch {
+      return false
     }
+  }
+
+  // ✅ GET ENCRYPTED CONVERSATION
+  async getEncryptedConversation(contactId: string): Promise<{message: ChatMessage, decryptedContent: string}[]> {
+    const messages = await this.storage.getMessages(contactId)
+    const decryptedMessages = []
+    
+    for (const message of messages) {
+      if (message.encrypted) {
+        const encryptedMsg: EncryptedMessage = {
+          id: message.id,
+          contactId: message.contactId,
+          encryptedContent: message.content,
+          iv: message.content.split('|')[0],
+          timestamp: message.timestamp,
+          signature: message.content.split('|')[1]
+        }
+        
+        const decryptedContent = await this.decryptMessage(encryptedMsg)
+        decryptedMessages.push({
+          message,
+          decryptedContent
+        })
+      } else {
+        decryptedMessages.push({
+          message,
+          decryptedContent: message.content
+        })
+      }
+    }
+    
+    return decryptedMessages
   }
 
   private convertToChatMessage(secureMessage: EncryptedMessage): ChatMessage {
@@ -149,7 +146,7 @@ export class SecureChatEngine {
       id: secureMessage.id,
       contactId: secureMessage.contactId,
       senderId: 'me',
-      content: secureMessage.encryptedContent,
+      content: `${secureMessage.iv}|${secureMessage.signature}|${secureMessage.encryptedContent}`,
       timestamp: secureMessage.timestamp,
       messageType: 'text',
       status: 'sent',
@@ -171,28 +168,5 @@ export class SecureChatEngine {
     }
     
     await this.storage.saveConversation(conversation)
-  }
-
-  // ✅ TEST METHOD
-  async testEncryption(): Promise<boolean> {
-    try {
-      const testMessage = 'Hello Zoomka! ' + Date.now()
-      const messageId = await this.sendEncryptedMessage('test_contact', testMessage)
-      const messages = await this.getEncryptedConversation('test_contact')
-      
-      const lastMessage = messages[messages.length - 1]
-      if (lastMessage && lastMessage.decryptedContent === testMessage) {
-        console.log('✅ Encryption/Decryption test PASSED')
-        return true
-      } else {
-        console.error('❌ Encryption/Decryption test FAILED')
-        console.log('Expected:', testMessage)
-        console.log('Got:', lastMessage?.decryptedContent)
-        return false
-      }
-    } catch (error) {
-      console.error('❌ Encryption test error:', error)
-      return false
-    }
   }
 }

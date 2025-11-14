@@ -45,12 +45,12 @@
           <p class="text-xs opacity-70 mt-1 text-right">
             {{ formatTime(message.timestamp) }}
           </p>
-          <!-- Encryption Indicator -->
-          <div v-if="message.encrypted" class="flex justify-end mt-1">
+          <!-- Message Status -->
+          <div v-if="message.senderId === 'me'" class="flex justify-end mt-1">
             <Icon 
-              icon="material-symbols:lock" 
-              class="text-xs opacity-50"
-              title="End-to-End Encrypted"
+              :icon="getMessageStatusIcon(message.status)" 
+              class="text-xs"
+              :class="getMessageStatusColor(message.status)"
             />
           </div>
         </div>
@@ -86,13 +86,13 @@
           type="text"
           placeholder="Type a message..."
           class="flex-1 input-modern"
-          :disabled="isSending"
+          :disabled="!isPremium || isSending"
           @keyup.enter="sendMessage"
           maxlength="1000"
         >
         <button 
           @click="sendMessage"
-          :disabled="!newMessage.trim() || isSending"
+          :disabled="!newMessage.trim() || !isPremium || isSending"
           class="btn-primary px-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Icon v-if="isSending" icon="eos-icons:loading" class="text-xl" />
@@ -106,10 +106,10 @@
           {{ newMessage.length }}/1000
         </span>
         
-        <!-- Encryption Status -->
-        <div class="flex items-center space-x-2 text-green-600">
+        <!-- Premium Required Notice -->
+        <div v-if="!isPremium" class="flex items-center space-x-2 text-amber-600">
           <Icon icon="material-symbols:lock" class="text-sm" />
-          <span class="text-xs">End-to-End Encrypted</span>
+          <span class="text-xs">Premium feature</span>
         </div>
       </div>
     </div>
@@ -137,8 +137,9 @@ const messagesContainer = ref<HTMLElement>()
 const messages = ref<any[]>([])
 const isLoading = ref(false)
 const isSending = ref(false)
+const isPremium = ref(true) // In production, this would check actual premium status
 
-// ✅ LOAD ENCRYPTED MESSAGES
+// ✅ PRODUCTION: LOAD REAL MESSAGES
 const loadMessages = async () => {
   if (!props.contact?.id) return
   
@@ -163,7 +164,7 @@ const loadMessages = async () => {
   }
 }
 
-// ✅ SEND ENCRYPTED MESSAGE
+// ✅ PRODUCTION: SEND REAL ENCRYPTED MESSAGE
 const sendMessage = async () => {
   if (!newMessage.value.trim() || !props.contact?.id) return
   
@@ -190,7 +191,7 @@ const sendMessage = async () => {
     
     newMessage.value = ''
     scrollToBottom()
-    console.log('✅ Message sent successfully!')
+    console.log('✅ Message sent successfully')
     
   } catch (error) {
     console.error('❌ Failed to send message:', error)
@@ -213,6 +214,24 @@ const formatTime = (date: Date) => {
     hour: '2-digit', 
     minute: '2-digit' 
   })
+}
+
+const getMessageStatusIcon = (status: string) => {
+  const icons = {
+    sent: 'material-symbols:check',
+    delivered: 'material-symbols:check',
+    read: 'material-symbols:check'
+  }
+  return icons[status as keyof typeof icons] || 'material-symbols:schedule'
+}
+
+const getMessageStatusColor = (status: string) => {
+  const colors = {
+    sent: 'text-gray-400',
+    delivered: 'text-gray-600',
+    read: 'text-zoom-500'
+  }
+  return colors[status as keyof typeof colors] || 'text-gray-400'
 }
 
 // Load messages when contact changes

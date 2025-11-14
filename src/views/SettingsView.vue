@@ -187,7 +187,7 @@
         <div class="glass-card p-6 text-center">
           <Icon icon="logos:rocket-icon" class="text-4xl text-zoom-500 mb-4" />
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2 font-cal">Zoomka</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300 font-poppins mb-1">made by Harambee.</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300 font-poppins mb-1">made with Hope from Tchad by Harambee.</p>
           <p class="text-sm text-gray-600 dark:text-gray-300 font-poppins mb-1">Version 1.0.0</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 font-poppins">
             {{ $t('appDescription') }}

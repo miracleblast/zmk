@@ -261,7 +261,7 @@ onUnmounted(() => {
   stopScanner()
 })
 
-// ✅ ENHANCED SCAN HANDLER WITH PROFILE PICTURE SUPPORT
+// ✅ UPDATED SCAN HANDLER WITH ContactEngine
 const handleScanResult = (qrData: string) => {
   console.log('📱 Raw QR data:', qrData)
   
@@ -269,7 +269,6 @@ const handleScanResult = (qrData: string) => {
     // ✅ USE ContactEngine TO PARSE AND ENHANCE THE CONTACT
     const contact = contactEngine.parseAndEnhanceContact(qrData)
     console.log('🎯 Enhanced contact:', contact)
-    console.log('🖼️ Profile picture available:', contact.image ? 'Yes' : 'No')
     
     scanResult.value = qrData
     enhancedContact.value = contact
